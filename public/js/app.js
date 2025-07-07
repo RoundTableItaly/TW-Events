@@ -316,7 +316,20 @@
             if (activity.latitude && activity.longitude) {
                 activitiesWithCoords++;
                 const marker = L.marker([activity.latitude, activity.longitude]).addTo(map);
-                marker.bindPopup(`<b>${activity.name}</b>`);
+                
+                // Crea il contenuto del popup con data, luogo e link all'evento
+                const popupContent = `
+                    <div style="min-width: 200px;">
+                        <h6 class="mb-1"><b>${activity.name}</b></h6>
+                        <p class="mb-2 text-dark small">${formatDateIT(activity.start_date)}</p>
+                        ${activity.location ? `<p class="mb-2 text-dark small"><span class="text-danger">📍</span> ${activity.location}</p>` : ''}
+                        <a href="#event-${activity.id}" class="btn btn-sm btn-outline-primary" onclick="event.preventDefault(); scrollAndHighlightEvent('${activity.id}'); window.location.hash = 'event-${activity.id}';">
+                            Vai all'evento
+                        </a>
+                    </div>
+                `;
+                
+                marker.bindPopup(popupContent);
                 window.activityMarkers.push(marker);
             }
         });
@@ -480,6 +493,43 @@
         });
     }
 
+    // Funzione unica per scroll, highlight e aggiornamento hash
+    function scrollAndHighlightEvent(eventId) {
+        const anchor = document.getElementById(`event-${eventId}`);
+        if (anchor) {
+            // Rimuovi eventuali highlight precedenti
+            document.querySelectorAll('.highlight-event').forEach(el => el.classList.remove('highlight-event'));
+            
+            // Crea un observer per aspettare che l'elemento sia visibile
+            const observer = new IntersectionObserver((entries) => {
+                // Questo codice viene eseguito solo quando la card entra in vista
+                if (entries[0].isIntersecting) {
+                    anchor.classList.add('highlight-event');
+                    setTimeout(() => {
+                        anchor.classList.remove('highlight-event');
+                    }, 700); // Durata dell'animazione
+                    
+                    // Smettiamo di osservare, il nostro compito è finito
+                    observer.unobserve(anchor);
+                }
+            }, { threshold: 0.9 }); // Si attiva quando il 90% della card è visibile
+
+            // Inizia a osservare la card
+            observer.observe(anchor);
+
+            // Avvia lo scroll
+            anchor.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+            // Aggiorna sempre l'hash (anche se è già quello)
+            if (window.location.hash !== `#event-${eventId}`) {
+                window.location.hash = `event-${eventId}`;
+            } else {
+                history.replaceState(null, '', `#event-${eventId}`);
+            }
+        }
+    }
+    window.scrollAndHighlightEvent = scrollAndHighlightEvent;
+
     // Funzione per renderizzare il calendario mensile con evidenziazione eventi
     function renderCalendar(activities) {
         const calendarEl = document.getElementById("calendar");
@@ -510,30 +560,7 @@
                 right: "",
             },
             eventClick: function(info) {
-                const anchor = document.getElementById(`event-${info.event.id}`);
-                if (anchor) {
-                    // Pulisce subito gli highlight precedenti
-                    document.querySelectorAll('.highlight-event').forEach(el => el.classList.remove('highlight-event'));
-
-                    const observer = new IntersectionObserver((entries) => {
-                        // Questo codice viene eseguito solo quando la card entra in vista
-                        if (entries[0].isIntersecting) {
-                            anchor.classList.add('highlight-event');
-                            setTimeout(() => {
-                                anchor.classList.remove('highlight-event');
-                            }, 700); // Durata dell'animazione
-                            
-                            // Smettiamo di osservare, il nostro compito è finito
-                            observer.unobserve(anchor);
-                        }
-                    }, { threshold: 0.9 }); // Si attiva quando il 90% della card è visibile
-
-                    // Inizia a osservare la card
-                    observer.observe(anchor);
-
-                    // Avvia lo scroll
-                    anchor.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }
+                scrollAndHighlightEvent(info.event.id);
             },
         });
         window.fcInstance.render();
