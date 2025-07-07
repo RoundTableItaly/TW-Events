@@ -5,9 +5,11 @@
  * Base structure
  */
 
-html, body {
+html,
+body {
     height: 100%;
 }
+
 body {
     font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     /* Margin bottom by footer height */
@@ -20,118 +22,78 @@ body {
 }
 
 #map-container {
-    height: 80vh; 
-    position: sticky;
-    top: 2rem;
-    border-radius: 0.375rem; 
+    height: 500px;
+    border-radius: 0.375rem;
     border: 1px solid #dee2e6;
-    box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075);
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
 }
 
-.activity-card {
-    transition: box-shadow .15s ease-in-out;
-    display: flex;
-    flex-direction: row;
-    align-items: stretch;
-    min-height: 180px;
+.main-flex-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
 }
 
-.activity-card:hover {
-    box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15) !important;
+.filters-flex {
+  display: flex;
+  flex-direction: column;
 }
 
-.canceled-badge {
-    background-color: #dc3545;
-    color: white;
-    padding: 0.25em 0.6em;
-    font-size: 0.75em;
-    font-weight: 700;
-    line-height: 1;
-    text-align: center;
-    white-space: nowrap;
-    vertical-align: baseline;
-    border-radius: 0.25rem;
+.map-flex {
+  display: flex;
+  flex-direction: column;
 }
 
-.location-info, .date {
-    font-size: 0.9rem;
-    color: #6c757d;
+.activities-flex {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  align-items: stretch;
 }
 
-.modal-body img.activity-cover {
-    max-width: 40%;
-    height: auto;
-    border-radius: 0.25rem;
+.activities-flex > div {
+  flex: 1 1 0;
+  min-width: 300px;
+  max-width: 33.3333%;
+  display: flex;
 }
-
-.activity-flex {
-    display: flex;
-    justify-content: space-between;
+@media (max-width: 991.98px) {
+  .activities-flex > div {
+    max-width: 50%;
+  }
 }
-
-.activity-content {
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column;
-}
-
-.activity-cover-col {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 140px;
-    max-width: 180px;
-    padding: 1rem;
-}
-
-.activity-cover {
-    width: 120px;
-    height: 120px;
-    object-fit: cover;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-}
-
-.card-body {
-    padding-bottom: 0.5rem;
-}
-
-.card-footer {
-    padding-top: 0;
-}
-
-.footer {
-    position: absolute;
-    bottom: 0;
-    width: 100%;
-    /* Set the fixed height of the footer here */
-    height: 60px;
-    line-height: 60px; /* Vertically center the text there */
-}
-
-/* Custom styles for activity cards */
-.activity-cover-image {
-    background-size: cover;
-    background-position: center;
-    min-height: 200px;
-}
-
 @media (max-width: 767.98px) {
-    .activity-card {
-        flex-direction: column;
-        min-height: unset;
-    }
-    .activity-cover-col {
-        max-width: 100%;
-        justify-content: flex-start;
-        padding: 0.5rem 0 0.5rem 0;
-    }
-    .activity-cover {
-        width: 100px;
-        height: 100px;
-    }
+  .activities-flex > div {
+    max-width: 100%;
+  }
 }
 
-main.flex-shrink-0 {
-    flex: 1 0 auto;
-} 
+.calendar-flex {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Stile per l'effetto flash (una sola animazione) */
+.highlight-event {
+  position: relative;
+  overflow: hidden;
+}
+
+.highlight-event::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(255,255,255,0.85);
+  pointer-events: none;
+  animation: flash-overlay 0.7s ease-out;
+  z-index: 2;
+}
+
+@keyframes flash-overlay {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+

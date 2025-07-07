@@ -5,132 +5,242 @@
  */
 
 (() => {
-    'use strict'
-  
-    const getStoredTheme = () => localStorage.getItem('theme')
-    const setStoredTheme = theme => localStorage.setItem('theme', theme)
-  
+    "use strict";
+
+    const getStoredTheme = () => localStorage.getItem("theme");
+    const setStoredTheme = (theme) => localStorage.setItem("theme", theme);
+
     const getPreferredTheme = () => {
-      const storedTheme = getStoredTheme()
-      if (storedTheme) {
-        return storedTheme
-      }
-  
-      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-    }
-  
-    const setTheme = theme => {
-      if (theme === 'auto') {
-        document.documentElement.setAttribute('data-bs-theme', (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'))
-      } else {
-        document.documentElement.setAttribute('data-bs-theme', theme)
-      }
-    }
-  
-    setTheme(getPreferredTheme())
-  
+        const storedTheme = getStoredTheme();
+        if (storedTheme) {
+            return storedTheme;
+        }
+
+        return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    };
+
+    const setTheme = (theme) => {
+        if (theme === "auto") {
+            document.documentElement.setAttribute("data-bs-theme", window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+        } else {
+            document.documentElement.setAttribute("data-bs-theme", theme);
+        }
+    };
+
+    setTheme(getPreferredTheme());
+
     const showActiveTheme = (theme, focus = false) => {
-      const themeSwitcher = document.querySelector('#bd-theme')
-  
-      if (!themeSwitcher) {
-        return
-      }
-  
-      const themeSwitcherText = document.querySelector('#bd-theme-text')
-      const activeThemeIcon = document.querySelector('#bd-theme-icon')
-      const btnToActive = document.querySelector(`[data-bs-theme-value="${theme}"]`)
-      
-      document.querySelectorAll('[data-bs-theme-value]').forEach(element => {
-        element.classList.remove('active')
-      })
-  
-      btnToActive.classList.add('active')
-      activeThemeIcon.className = btnToActive.querySelector('i').className
-      
-      if (focus) {
-        themeSwitcher.focus()
-      }
-    }
-  
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-      const storedTheme = getStoredTheme()
-      if (storedTheme !== 'light' && storedTheme !== 'dark') {
-        setTheme(getPreferredTheme())
-      }
-    })
-  
-    window.addEventListener('DOMContentLoaded', () => {
-      showActiveTheme(getPreferredTheme())
-  
-      document.querySelectorAll('[data-bs-theme-value]')
-        .forEach(toggle => {
-          toggle.addEventListener('click', () => {
-            const theme = toggle.getAttribute('data-bs-theme-value')
-            setStoredTheme(theme)
-            setTheme(theme)
-            showActiveTheme(theme, true)
-          })
-        })
-    })
+        const themeSwitcher = document.querySelector("#bd-theme");
+
+        if (!themeSwitcher) {
+            return;
+        }
+
+        const themeSwitcherText = document.querySelector("#bd-theme-text");
+        const activeThemeIcon = document.querySelector("#bd-theme-icon");
+        const btnToActive = document.querySelector(`[data-bs-theme-value="${theme}"]`);
+
+        document.querySelectorAll("[data-bs-theme-value]").forEach((element) => {
+            element.classList.remove("active");
+        });
+
+        btnToActive.classList.add("active");
+        activeThemeIcon.className = btnToActive.querySelector("i").className;
+
+        if (focus) {
+            themeSwitcher.focus();
+        }
+    };
+
+    window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+        const storedTheme = getStoredTheme();
+        if (storedTheme !== "light" && storedTheme !== "dark") {
+            setTheme(getPreferredTheme());
+        }
+    });
+
+    window.addEventListener("DOMContentLoaded", () => {
+        showActiveTheme(getPreferredTheme());
+
+        document.querySelectorAll("[data-bs-theme-value]").forEach((toggle) => {
+            toggle.addEventListener("click", () => {
+                const theme = toggle.getAttribute("data-bs-theme-value");
+                setStoredTheme(theme);
+                setTheme(theme);
+                showActiveTheme(theme, true);
+            });
+        });
+
+        // Initialize Leaflet map
+        const HOME_COORDS = [42.5, 12.5];
+        const HOME_ZOOM = 5;
+        const map = L.map("map-container").setView(HOME_COORDS, HOME_ZOOM); // Centered on Italy
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        }).addTo(map);
+
+        // Custom Home Button
+        const homeControl = L.Control.extend({
+            options: { position: "topleft" },
+            onAdd: function (map) {
+                const container = L.DomUtil.create("div", "leaflet-bar leaflet-control leaflet-control-custom");
+                container.style.backgroundColor = "white";
+                container.style.width = "34px";
+                container.style.height = "34px";
+                container.style.display = "flex";
+                container.style.alignItems = "center";
+                container.style.justifyContent = "center";
+                container.style.cursor = "pointer";
+                container.title = "Torna alla vista iniziale";
+                container.innerHTML = '<i class="bi bi-house-door" style="font-size: 1.2rem; color: #000;"></i>';
+                container.onclick = function () {
+                    map.setView(HOME_COORDS, HOME_ZOOM);
+                };
+                return container;
+            },
+        });
+        map.addControl(new homeControl());
+
+        // Fix per mappa in collapse
+        const collapseMap = document.getElementById("collapseMap");
+        if (collapseMap) {
+            collapseMap.addEventListener("shown.bs.collapse", function () {
+                setTimeout(() => {
+                    map.invalidateSize();
+                }, 200);
+            });
+        }
+
+        fetchActivities(map);
+
+        // Event listeners per i filtri
+        document.getElementById("filter-area").addEventListener("change", () => {
+            applyFilters();
+            renderActivities(filteredActivities, map);
+            renderCalendar(filteredActivities);
+        });
+        document.getElementById("filter-description").addEventListener("change", () => {
+            applyFilters();
+            renderActivities(filteredActivities, map);
+            renderCalendar(filteredActivities);
+        });
+
+        // Gestione pulsante Mostra/Nascondi eventi passati
+        const showPastBtn = document.getElementById("show-past-events-btn");
+        function updateShowPastBtn() {
+            if (showPastEvents) {
+                showPastBtn.classList.remove("btn-outline-secondary");
+                showPastBtn.classList.add("btn-secondary");
+                showPastBtn.textContent = "Nascondi eventi passati";
+            } else {
+                showPastBtn.classList.add("btn-outline-secondary");
+                showPastBtn.classList.remove("btn-secondary");
+                showPastBtn.textContent = "Mostra eventi passati";
+            }
+        }
+        showPastBtn.addEventListener("click", () => {
+            showPastEvents = !showPastEvents;
+            updateShowPastBtn();
+            applyFilters();
+            renderActivities(filteredActivities, map);
+            // Se la mappa è visibile, ricalcola la dimensione
+            if (collapseMap && collapseMap.classList.contains("show")) {
+                setTimeout(() => {
+                    map.invalidateSize();
+                }, 200);
+            }
+            renderCalendar(filteredActivities);
+        });
+        updateShowPastBtn();
+
+        // Fix per ridisegnare il calendario quando il collapse viene aperto
+        const collapseCalendar = document.getElementById("collapseCalendar");
+        if (collapseCalendar) {
+            collapseCalendar.addEventListener("shown.bs.collapse", function () {
+                if (window.fcInstance && typeof window.fcInstance.updateSize === "function") {
+                    window.fcInstance.updateSize();
+                } else if (window.fcInstance && typeof window.fcInstance.render === "function") {
+                    window.fcInstance.render();
+                }
+            });
+        }
+    });
 
     /**
      * Custom script to fetch and display activities
      */
     let allActivities = [];
     let filteredActivities = [];
+    let showPastEvents = false;
+    let activityMarkers = [];
 
     function populateFilters(activities) {
         const areaSet = new Set();
         const descSet = new Set();
-        activities.forEach(a => {
+        activities.forEach((a) => {
             if (a.api_endpoint_area) areaSet.add(a.api_endpoint_area);
             if (a.api_endpoint_description) descSet.add(a.api_endpoint_description);
         });
-        const areaSelect = document.getElementById('filter-area');
-        const descSelect = document.getElementById('filter-description');
+        const areaSelect = document.getElementById("filter-area");
+        const descSelect = document.getElementById("filter-description");
         // Reset
         areaSelect.innerHTML = '<option value="">Tutte</option>';
         descSelect.innerHTML = '<option value="">Tutte</option>';
-        areaSet.forEach(area => {
+        areaSet.forEach((area) => {
             areaSelect.innerHTML += `<option value="${area}">${area}</option>`;
         });
-        descSet.forEach(desc => {
+        descSet.forEach((desc) => {
             descSelect.innerHTML += `<option value="${desc}">${desc}</option>`;
         });
     }
 
     function applyFilters() {
-        const area = document.getElementById('filter-area').value;
-        const desc = document.getElementById('filter-description').value;
-        filteredActivities = allActivities.filter(a => {
-            return (!area || a.api_endpoint_area === area) && (!desc || a.api_endpoint_description === desc);
+        const area = document.getElementById("filter-area").value;
+        const desc = document.getElementById("filter-description").value;
+        const now = new Date();
+        filteredActivities = allActivities.filter((a) => {
+            const isFuture = !a.start_date || new Date(a.start_date) >= now;
+            // Se showPastEvents è true, mostra anche i passati, altrimenti solo futuri
+            const dateFilter = showPastEvents ? true : isFuture;
+            return dateFilter && (!area || a.api_endpoint_area === area) && (!desc || a.api_endpoint_description === desc);
         });
+        // Ordina per data di inizio crescente
+        filteredActivities.sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
     }
 
     function renderActivities(activities, map) {
-        const activitiesList = document.getElementById('activities-list');
-        activitiesList.innerHTML = '';
+        const activitiesList = document.getElementById("activities-list");
+        activitiesList.innerHTML = "";
         let activitiesWithCoords = 0;
-        activitiesList.className = 'row d-flex align-items-stretch';
+        activitiesList.className = "activities-flex";
 
-        activities.forEach(activity => {
-            const col = document.createElement('div');
-            col.className = 'col-md-6 mb-4 d-flex'; // 2 cards per row, flex
+        // Rimuovi tutti i marker precedenti
+        if (window.activityMarkers && Array.isArray(window.activityMarkers)) {
+            window.activityMarkers.forEach((marker) => marker.remove());
+        }
+        window.activityMarkers = [];
+
+        activities.forEach((activity) => {
+            const col = document.createElement("div");
+            col.className = "mb-4 d-flex"; // flex card
+            if (activity.id) {
+                col.id = `event-${activity.id}`;
+            }
 
             // Card container
-            const card = document.createElement('div');
-            card.className = 'card h-100 d-flex flex-column w-100';
+            const card = document.createElement("div");
+            card.className = "card h-100 d-flex flex-column w-100";
 
             // Card header con description e area
             if (activity.api_endpoint_description || activity.api_endpoint_area) {
-                const header = document.createElement('div');
-                header.className = 'card-header';
-                let headerContent = '';
+                const header = document.createElement("div");
+                header.className = "card-header";
+                let headerContent = "";
                 if (activity.api_endpoint_description) {
                     headerContent += `<span>${activity.api_endpoint_description}</span>`;
                 }
                 if (activity.api_endpoint_area) {
-                    if (headerContent) headerContent += ' &middot; ';
+                    if (headerContent) headerContent += " &middot; ";
                     headerContent += `<span>${activity.api_endpoint_area}</span>`;
                 }
                 header.innerHTML = headerContent;
@@ -143,15 +253,15 @@
             }
 
             // Card body
-            const safeShortDesc = DOMPurify.sanitize((activity.description || '').substring(0, 200), {ALLOWED_TAGS: ['b','i','em','strong','a','ul','ol','li','br']});
-            const cardBody = document.createElement('div');
-            cardBody.className = 'card-body d-flex flex-column h-100';
+            const safeShortDesc = DOMPurify.sanitize((activity.description || "").substring(0, 200), { ALLOWED_TAGS: ["b", "i", "em", "strong", "a", "ul", "ol", "li", "br"] });
+            const cardBody = document.createElement("div");
+            cardBody.className = "card-body d-flex flex-column h-100";
             cardBody.innerHTML = `
                 <h5 class='card-title'>${activity.name}</h5>
-                <p class='card-text mb-1'><span class='text-danger'>📍</span> <b>Luogo:</b> <i>${activity.location || ''}</i></p>
+                <p class='card-text mb-1'><span class='text-danger'>📍</span> <b>Luogo:</b> <i>${activity.location || ""}</i></p>
                 <p class='card-text mb-1'><b>Inizio:</b> ${formatDateIT(activity.start_date)}</p>
                 <p class='card-text mb-1'><b>Fine:</b> ${formatDateIT(activity.end_date)}</p>
-                <div class='card-text mb-2'>${safeShortDesc}${activity.description && activity.description.length > 200 ? '...' : ''}</div>
+                <div class='card-text mb-2'>${safeShortDesc}${activity.description && activity.description.length > 200 ? "..." : ""}</div>
                 <button id='read-more-btn' class='btn btn-primary mt-auto' type='button'>Leggi tutto...</button>
             `;
             card.appendChild(cardBody);
@@ -159,13 +269,13 @@
             activitiesList.appendChild(col);
 
             // Modal logic
-            const readMoreBtn = card.querySelector('#read-more-btn');
-            readMoreBtn.addEventListener('click', () => {
-                let modal = document.getElementById('activityModal');
+            const readMoreBtn = card.querySelector("#read-more-btn");
+            readMoreBtn.addEventListener("click", () => {
+                let modal = document.getElementById("activityModal");
                 if (!modal) {
-                    modal = document.createElement('div');
-                    modal.className = 'modal fade';
-                    modal.id = 'activityModal';
+                    modal = document.createElement("div");
+                    modal.className = "modal fade";
+                    modal.id = "activityModal";
                     modal.tabIndex = -1;
                     modal.innerHTML = `
                         <div class='modal-dialog modal-lg modal-dialog-centered'>
@@ -179,19 +289,19 @@
                         </div>`;
                     document.body.appendChild(modal);
                 }
-                document.getElementById('activityModalLabel').innerHTML = activity.name;
+                document.getElementById("activityModalLabel").innerHTML = activity.name;
                 let modalBody = `<div class='row'>`;
                 if (activity.cover_picture) {
                     modalBody += `<div class='col-md-4 text-center mb-3 mb-md-0'><img src='${activity.cover_picture}' class='img-fluid rounded' alt='cover ${activity.name}'></div>`;
                 }
                 modalBody += `<div class='col-md-8'>
-                    <p class='mb-1'><span class='text-danger'>📍</span> <b>Luogo:</b> <i>${activity.location || ''}</i></p>
+                    <p class='mb-1'><span class='text-danger'>📍</span> <b>Luogo:</b> <i>${activity.location || ""}</i></p>
                     <p class='mb-1'><b>Inizio:</b> ${formatDateIT(activity.start_date)}</p>
                     <p class='mb-1'><b>Fine:</b> ${formatDateIT(activity.end_date)}</p>
-                    <div class='mt-2'>${DOMPurify.sanitize(activity.description || '', {ALLOWED_TAGS: ['b','i','em','strong','a','ul','ol','li','br']})}</div>
-                    ${activity.url ? `<a href='${activity.url}' class='btn btn-outline-primary mt-3' target='_blank'>Vai all'evento</a>` : ''}
+                    <div class='mt-2'>${DOMPurify.sanitize(activity.description || "", { ALLOWED_TAGS: ["b", "i", "em", "strong", "a", "ul", "ol", "li", "br"] })}</div>
+                    ${activity.url ? `<a href='${activity.url}' class='btn btn-outline-primary mt-3' target='_blank'>Vai all'evento</a>` : ""}
                 </div></div>`;
-                document.getElementById('activityModalBody').innerHTML = modalBody;
+                document.getElementById("activityModalBody").innerHTML = modalBody;
                 const bsModal = new bootstrap.Modal(modal);
                 bsModal.show();
             });
@@ -201,65 +311,113 @@
                 activitiesWithCoords++;
                 const marker = L.marker([activity.latitude, activity.longitude]).addTo(map);
                 marker.bindPopup(`<b>${activity.name}</b>`);
+                window.activityMarkers.push(marker);
             }
         });
 
         if (activitiesWithCoords === 0) {
-            const mapNotice = document.createElement('div');
-            mapNotice.className = 'text-center text-body-secondary p-3';
-            mapNotice.innerHTML = 'No activities have map coordinates.';
-            document.getElementById('map-container').appendChild(mapNotice);
+            const mapNotice = document.createElement("div");
+            mapNotice.className = "text-center text-body-secondary p-3";
+            mapNotice.innerHTML = "No activities have map coordinates.";
+            document.getElementById("map-container").appendChild(mapNotice);
         }
     }
 
     async function fetchActivities(map) {
-        const activitiesList = document.getElementById('activities-list');
-        const loadingIndicator = document.getElementById('loading');
+        const activitiesList = document.getElementById("activities-list");
+        const loadingIndicator = document.getElementById("loading");
         try {
-            const response = await fetch('/api/activities');
+            const response = await fetch("/api/activities");
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             const activities = await response.json();
             allActivities = activities;
-            filteredActivities = activities;
+            // Ordina allActivities per data di inizio crescente
+            allActivities.sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
+            filteredActivities = allActivities.filter((a) => {
+                const now = new Date();
+                return !a.start_date || new Date(a.start_date) >= now;
+            });
             populateFilters(activities);
             // Clear loading indicator
             loadingIndicator.remove();
+            renderCalendar(allActivities);
             renderActivities(filteredActivities, map);
         } catch (error) {
             loadingIndicator.innerHTML = '<p class="text-center text-danger">Failed to load activities. Please try again later.</p>';
-            console.error('Error fetching activities:', error);
+            console.error("Error fetching activities:", error);
         }
     }
 
-    // Fetch activities when the page loads
-    window.addEventListener('DOMContentLoaded', () => {
-        // Initialize Leaflet map
-        const map = L.map('map-container').setView([42.5, 12.5], 5); // Centered on Italy
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        }).addTo(map);
-
-        fetchActivities(map);
-
-        // Event listeners per i filtri
-        document.getElementById('filter-area').addEventListener('change', () => {
-            applyFilters();
-            renderActivities(filteredActivities, map);
-        });
-        document.getElementById('filter-description').addEventListener('change', () => {
-            applyFilters();
-            renderActivities(filteredActivities, map);
-        });
-    });
-
     // Funzione per formattare la data in italiano
     function formatDateIT(dateString) {
-        if (!dateString) return '';
-        return new Date(dateString).toLocaleString('it-IT', {
-            year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+        if (!dateString) return "";
+        return new Date(dateString).toLocaleString("it-IT", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
         });
     }
 
-})() 
+    // Funzione per renderizzare il calendario mensile con evidenziazione eventi
+    function renderCalendar(activities) {
+        const calendarEl = document.getElementById("calendar");
+        if (!calendarEl) return;
+
+        // Mappa le attività in eventi per FullCalendar
+        const events = activities.map((a) => ({
+            id: a.id,
+            title: a.name,
+            start: a.start_date,
+            end: a.end_date,
+            allDay: true,
+        }));
+
+        // Distruggi il calendario precedente se esiste
+        if (window.fcInstance) {
+            window.fcInstance.destroy();
+        }
+
+        window.fcInstance = new FullCalendar.Calendar(calendarEl, {
+            initialView: "dayGridMonth",
+            themeSystem: "bootstrap5",
+            locale: "it",
+            events: events,
+            headerToolbar: {
+                left: "prev,next today",
+                center: "title",
+                right: "",
+            },
+            eventClick: function(info) {
+                const anchor = document.getElementById(`event-${info.event.id}`);
+                if (anchor) {
+                    // Pulisce subito gli highlight precedenti
+                    document.querySelectorAll('.highlight-event').forEach(el => el.classList.remove('highlight-event'));
+
+                    const observer = new IntersectionObserver((entries) => {
+                        // Questo codice viene eseguito solo quando la card entra in vista
+                        if (entries[0].isIntersecting) {
+                            anchor.classList.add('highlight-event');
+                            setTimeout(() => {
+                                anchor.classList.remove('highlight-event');
+                            }, 700); // Durata dell'animazione
+                            
+                            // Smettiamo di osservare, il nostro compito è finito
+                            observer.unobserve(anchor);
+                        }
+                    }, { threshold: 0.9 }); // Si attiva quando il 90% della card è visibile
+
+                    // Inizia a osservare la card
+                    observer.observe(anchor);
+
+                    // Avvia lo scroll
+                    anchor.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            },
+        });
+        window.fcInstance.render();
+    }
+})();
