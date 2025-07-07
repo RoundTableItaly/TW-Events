@@ -97,3 +97,15 @@ body {
   to { opacity: 0; }
 }
 
+#whatsapp-summary-content {
+  white-space: pre-wrap;
+  background-color: var(--bs-tertiary-bg);
+  color: var(--bs-body-color);
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.375rem;
+  padding: 1rem;
+  font-family: 'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+

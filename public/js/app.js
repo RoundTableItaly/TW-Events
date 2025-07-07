@@ -344,9 +344,121 @@
             loadingIndicator.remove();
             renderCalendar(allActivities);
             renderActivities(filteredActivities, map);
+            
+            // Abilita il pulsante di condivisione
+            const shareBtn = document.getElementById("share-summary-btn");
+            if (shareBtn) {
+                shareBtn.disabled = false;
+            }
+
         } catch (error) {
             loadingIndicator.innerHTML = '<p class="text-center text-danger">Failed to load activities. Please try again later.</p>';
             console.error("Error fetching activities:", error);
+        }
+    }
+
+    // Funzione per generare il riassunto per WhatsApp
+    function generateWhatsAppSummary(activities) {
+        const now = new Date();
+        const futureEvents = activities
+            .filter(a => !a.start_date || new Date(a.start_date) >= now)
+            .sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
+
+        if (futureEvents.length === 0) {
+            return "Nessun evento futuro da mostrare.";
+        }
+
+        const eventsByMonthThenDay = futureEvents.reduce((acc, event) => {
+            const startDate = new Date(event.start_date);
+            const month = startDate.toLocaleString('it-IT', { month: 'long', year: 'numeric' });
+            const dayKey = startDate.toDateString();
+
+            if (!acc[month]) {
+                acc[month] = {};
+            }
+            if (!acc[month][dayKey]) {
+                acc[month][dayKey] = [];
+            }
+            acc[month][dayKey].push(event);
+            return acc;
+        }, {});
+
+        let summary = "_*Eventi Round Table Italia*_\n\n";
+
+        for (const month in eventsByMonthThenDay) {
+            summary += `*${month.toUpperCase()}*\n\n`;
+
+            for (const day in eventsByMonthThenDay[month]) {
+                const eventsOnDay = eventsByMonthThenDay[month][day];
+                const firstEventDate = new Date(eventsOnDay[0].start_date);
+
+                const dateFormatOptions = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+                const dateString = firstEventDate.toLocaleDateString('it-IT', dateFormatOptions);
+                const capitalizedDate = dateString.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+
+                summary += `*${capitalizedDate}*\n\n`;
+
+                eventsOnDay.forEach(event => {
+                    const startDate = new Date(event.start_date);
+                    const endDate = event.end_date ? new Date(event.end_date) : null;
+
+                    summary += `- ${event.name}`;
+
+                    const details = [];
+                    if (event.api_endpoint_description) {
+                        details.push(event.api_endpoint_description);
+                    }
+                    if (event.api_endpoint_area) {
+                        details.push(event.api_endpoint_area);
+                    }
+                    if (details.length > 0) {
+                        summary += ` (${details.join(' - ')})`;
+                    }
+                    summary += `\n`;
+
+                    if (endDate && startDate.toDateString() !== endDate.toDateString()) {
+                        summary += `  _fino a ${endDate.toLocaleString('it-IT', { weekday: 'long', day: 'numeric' })}_\n`;
+                    }
+
+                    if (event.location) {
+                        summary += `📍 ${event.location}\n`;
+                    }
+                    
+                    summary += `\n`;
+                });
+            }
+        }
+
+        return summary.trimEnd();
+    }
+
+    // Gestione del modal di riepilogo WhatsApp
+    const whatsAppModal = document.getElementById('whatsappSummaryModal');
+    if (whatsAppModal) {
+        whatsAppModal.addEventListener('show.bs.modal', function () {
+            const summaryContent = document.getElementById('whatsapp-summary-content');
+            if (summaryContent) {
+                summaryContent.textContent = generateWhatsAppSummary(allActivities);
+            }
+        });
+
+        const copyBtn = document.getElementById('copy-summary-btn');
+        if (copyBtn) {
+            copyBtn.addEventListener('click', function () {
+                const summaryText = document.getElementById('whatsapp-summary-content').textContent;
+                navigator.clipboard.writeText(summaryText).then(() => {
+                    const originalText = copyBtn.textContent;
+                    copyBtn.textContent = 'Copiato!';
+                    copyBtn.classList.add('btn-success');
+                    setTimeout(() => {
+                        copyBtn.textContent = originalText;
+                        copyBtn.classList.remove('btn-success');
+                    }, 2000);
+                }).catch(err => {
+                    console.error('Errore durante la copia:', err);
+                    alert('Impossibile copiare il testo.');
+                });
+            });
         }
     }
 

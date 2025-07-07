@@ -25,6 +25,11 @@
               </li>
             </ul>
             <ul class="navbar-nav mb-2 mb-md-0">
+                <li class="nav-item me-2">
+                    <button class="btn btn-sm btn-outline-light d-flex align-items-center" id="share-summary-btn" type="button" data-bs-toggle="modal" data-bs-target="#whatsappSummaryModal" disabled title="Genera riepilogo per WhatsApp">
+                        <i class="bi bi-whatsapp"></i><span class="d-none d-md-inline ms-1">Condividi</span>
+                    </button>
+                </li>
                 <li class="nav-item dropdown">
                     <button class="btn btn-link nav-link dropdown-toggle" id="bd-theme" type="button" aria-expanded="false" data-bs-toggle="dropdown" data-bs-display="static">
                         <i class="bi bi-circle-half" id="bd-theme-icon"></i>
@@ -105,6 +110,28 @@
         </div>
       </div>
     </main>
+
+    <!-- WhatsApp Summary Modal -->
+    <div class="modal fade" id="whatsappSummaryModal" tabindex="-1" aria-labelledby="whatsappSummaryModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="whatsappSummaryModalLabel">Riassunto Eventi Futuri per WhatsApp</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <p>Copia il testo seguente e incollalo nella tua chat di WhatsApp.</p>
+            <div id="whatsapp-summary-content">
+              <!-- Summary will be injected here -->
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Chiudi</button>
+            <button type="button" class="btn btn-primary" id="copy-summary-btn">Copia Testo</button>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.js" integrity="sha256-tQ9c3dc1t0j9EV2Itwqx1ZK0qjrLayj0+l/lSEgU5ZM=" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js"></script>
