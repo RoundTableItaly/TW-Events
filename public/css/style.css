@@ -76,6 +76,54 @@ body {
   flex-direction: column;
 }
 
+/* Responsive calendar styling */
+#calendar {
+  height: auto;
+  min-height: 400px;
+}
+
+/* Mobile calendar adjustments */
+@media (max-width: 767.98px) {
+  #calendar {
+    height: calc(100vh - 200px); /* Adjust for navbar, filters, and padding */
+    min-height: 300px;
+  }
+  
+  /* Ensure calendar content fits properly */
+  #calendar .fc-view-harness {
+    height: 100% !important;
+  }
+  
+  /* Adjust calendar header for mobile */
+  #calendar .fc-header-toolbar {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  #calendar .fc-toolbar-chunk {
+    display: flex;
+    justify-content: center;
+  }
+  
+  /* Make calendar cells more touch-friendly */
+  #calendar .fc-daygrid-day {
+    min-height: 2.5rem;
+  }
+  
+  #calendar .fc-daygrid-day-number {
+    font-size: 0.9rem;
+    padding: 0.25rem;
+  }
+}
+
+/* Tablet calendar adjustments */
+@media (min-width: 768px) and (max-width: 991.98px) {
+  #calendar {
+    height: calc(100vh - 250px);
+    min-height: 350px;
+  }
+}
+
 /* Stile per l'effetto flash (una sola animazione) */
 .highlight-event {
   position: relative;

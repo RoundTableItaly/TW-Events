@@ -12,7 +12,7 @@
 
     <header>
       <!-- Fixed navbar -->
-      <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
+      <nav class="navbar navbar-expand-md fixed-top bg-body-tertiary">
         <div class="container-fluid">
           <a class="navbar-brand text-truncate" href="#" style="max-width: 60vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Round Table Italia Events</a>
           <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
@@ -21,21 +21,27 @@
           <div class="collapse navbar-collapse" id="navbarCollapse">
             <ul class="navbar-nav me-auto mb-2 mb-md-0">
               <li class="nav-item">
-                <!-- <a class="nav-link active" aria-current="page" href="#">Home</a> -->
+                <a class="nav-link" href="#" data-bs-toggle="collapse" data-bs-target="#collapseMap" aria-expanded="false" aria-controls="collapseMap">
+                  <i class="bi bi-geo-alt"></i> Mappa
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="#" data-bs-toggle="collapse" data-bs-target="#collapseCalendar" aria-expanded="false" aria-controls="collapseCalendar">
+                  <i class="bi bi-calendar3"></i> Calendario
+                </a>
               </li>
             </ul>
             <ul class="navbar-nav mb-2 mb-md-0">
                 <li class="nav-item me-2">
-                    <button class="btn btn-sm btn-outline-light d-flex align-items-center" id="share-summary-btn" type="button" data-bs-toggle="modal" data-bs-target="#whatsappSummaryModal" disabled title="Genera riepilogo per WhatsApp">
-                        <i class="bi bi-whatsapp"></i><span class="d-none d-md-inline ms-1">Condividi</span>
+                    <button class="btn btn-link nav-link" id="share-summary-btn" type="button" aria-expanded="false" data-bs-toggle="modal" data-bs-target="#whatsappSummaryModal" disabled title="Genera riepilogo per WhatsApp">
+                        <i class="bi bi-whatsapp"></i> Condividi
                     </button>
                 </li>
                 <li class="nav-item dropdown">
                     <button class="btn btn-link nav-link dropdown-toggle" id="bd-theme" type="button" aria-expanded="false" data-bs-toggle="dropdown" data-bs-display="static">
                         <i class="bi bi-circle-half" id="bd-theme-icon"></i>
-                        <span id="bd-theme-text">Toggle theme</span>
                     </button>
-                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="bd-theme-text">
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="bd-theme">
                         <li>
                             <button type="button" class="dropdown-item" data-bs-theme-value="light">
                                 <i class="bi bi-sun-fill me-2"></i>Light
@@ -62,33 +68,30 @@
     <!-- Begin page content -->
     <main class="main-flex-container flex-column">
       <div class="filters-flex mb-3">
-        <form class="d-flex flex-wrap align-items-end gap-2" id="filters-form">
-          <div class="mb-2">
-            <label for="filter-area" class="form-label mb-0">Zona</label>
-            <select id="filter-area" class="form-select form-select-sm" style="min-width: 120px;">
-              <option value="">Tutte</option>
-            </select>
+        <div class="card">
+          <div class="card-body">
+            <form class="d-flex flex-wrap align-items-end gap-2" id="filters-form">
+              <div class="mb-2">
+                <label for="filter-area" class="form-label mb-0">Zona</label>
+                <select id="filter-area" class="form-select form-select-sm" style="min-width: 120px;">
+                  <option value="">Tutte</option>
+                </select>
+              </div>
+              <div class="mb-2">
+                <label for="filter-description" class="form-label mb-0">Tavola</label>
+                <select id="filter-description" class="form-select form-select-sm" style="min-width: 120px;">
+                  <option value="">Tutte</option>
+                </select>
+              </div>
+              <div class="mb-2 align-self-end" id="show-past-events-container">
+                <button class="btn btn-outline-secondary btn-sm" type="button" id="show-past-events-btn">
+                  Mostra eventi passati
+                </button>
+              </div>
+
+            </form>
           </div>
-          <div class="mb-2">
-            <label for="filter-description" class="form-label mb-0">Tavola</label>
-            <select id="filter-description" class="form-select form-select-sm" style="min-width: 120px;">
-              <option value="">Tutte</option>
-            </select>
-          </div>
-          <div class="mb-2 align-self-end" id="show-past-events-container">
-            <button class="btn btn-outline-secondary btn-sm" type="button" id="show-past-events-btn">
-              Mostra eventi passati
-            </button>
-          </div>
-          <div class="mb-2 align-self-end d-flex gap-2">
-            <button class="btn btn-outline-primary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#collapseMap" aria-expanded="false" aria-controls="collapseMap">
-              <i class="bi bi-geo-alt"></i> Mostra/Nascondi mappa
-            </button>
-            <button class="btn btn-outline-primary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#collapseCalendar" aria-expanded="false" aria-controls="collapseCalendar">
-              <i class="bi bi-calendar3"></i> Mostra/Nascondi calendario
-            </button>
-          </div>
-        </form>
+        </div>
       </div>
       <div class="map-flex">
         <div class="collapse" id="collapseMap">

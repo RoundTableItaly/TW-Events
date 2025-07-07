@@ -186,10 +186,16 @@
         // Reset
         areaSelect.innerHTML = '<option value="">Tutte</option>';
         descSelect.innerHTML = '<option value="">Tutte</option>';
-        areaSet.forEach((area) => {
+        
+        // Ordina le aree alfabeticamente
+        const sortedAreas = Array.from(areaSet).sort();
+        sortedAreas.forEach((area) => {
             areaSelect.innerHTML += `<option value="${area}">${area}</option>`;
         });
-        descSet.forEach((desc) => {
+        
+        // Ordina le descrizioni alfabeticamente
+        const sortedDescriptions = Array.from(descSet).sort();
+        sortedDescriptions.forEach((desc) => {
             descSelect.innerHTML += `<option value="${desc}">${desc}</option>`;
         });
     }
