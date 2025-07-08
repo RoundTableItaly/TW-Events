@@ -15,7 +15,7 @@ body {
     /* Margin bottom by footer height */
     margin-bottom: 60px;
     /* Pad top for fixed navbar */
-    padding-top: 60px;
+    padding-top: 70px;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
@@ -155,5 +155,41 @@ body {
   font-family: 'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
   max-height: 50vh;
   overflow-y: auto;
+}
+
+/* Logo theme switching */
+[data-bs-theme="light"] .light-logo {
+  display: inline-block !important;
+}
+
+[data-bs-theme="light"] .dark-logo {
+  display: none !important;
+}
+
+[data-bs-theme="dark"] .light-logo {
+  display: none !important;
+}
+
+[data-bs-theme="dark"] .dark-logo {
+  display: inline-block !important;
+}
+
+/* Auto theme handling */
+[data-bs-theme="auto"] .light-logo {
+  display: inline-block !important;
+}
+
+[data-bs-theme="auto"] .dark-logo {
+  display: none !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  [data-bs-theme="auto"] .light-logo {
+    display: none !important;
+  }
+  
+  [data-bs-theme="auto"] .dark-logo {
+    display: inline-block !important;
+  }
 }
 

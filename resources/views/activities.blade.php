@@ -14,7 +14,12 @@
       <!-- Fixed navbar -->
       <nav class="navbar navbar-expand-md fixed-top bg-body-tertiary">
         <div class="container-fluid">
-          <a class="navbar-brand text-truncate" href="#" style="max-width: 60vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Round Table Italia Events</a>
+          <a class="navbar-brand d-flex align-items-center" href="#" style="max-width: 60vw;">
+            <img src="{{ asset('rt-italy_logo-2023-horizontal.svg') }}" alt="Round Table Italia" class="navbar-logo light-logo" style="height: 40px; width: auto;">
+            <img src="{{ asset('rt-italy_logo-2023-horizontal_neg.svg') }}" alt="Round Table Italia" class="navbar-logo dark-logo" style="height: 40px; width: auto; display: none;">
+            <div class="vr mx-2"></div>
+            <span class="text-truncate" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Events</span>
+          </a>
           <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
           </button>

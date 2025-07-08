@@ -25,6 +25,28 @@
         } else {
             document.documentElement.setAttribute("data-bs-theme", theme);
         }
+        
+        // Update logo visibility based on theme
+        updateLogoVisibility();
+    };
+
+    const updateLogoVisibility = () => {
+        const lightLogo = document.querySelector('.light-logo');
+        const darkLogo = document.querySelector('.dark-logo');
+        
+        if (!lightLogo || !darkLogo) return;
+        
+        const currentTheme = document.documentElement.getAttribute('data-bs-theme');
+        const isDark = currentTheme === 'dark' || 
+                      (currentTheme === 'auto' && window.matchMedia("(prefers-color-scheme: dark)").matches);
+        
+        if (isDark) {
+            lightLogo.style.display = 'none';
+            darkLogo.style.display = 'inline-block';
+        } else {
+            lightLogo.style.display = 'inline-block';
+            darkLogo.style.display = 'none';
+        }
     };
 
     setTheme(getPreferredTheme());
@@ -57,10 +79,15 @@
         if (storedTheme !== "light" && storedTheme !== "dark") {
             setTheme(getPreferredTheme());
         }
+        // Update logo visibility when system theme changes
+        updateLogoVisibility();
     });
 
     window.addEventListener("DOMContentLoaded", () => {
         showActiveTheme(getPreferredTheme());
+        
+        // Initialize logo visibility
+        updateLogoVisibility();
 
         document.querySelectorAll("[data-bs-theme-value]").forEach((toggle) => {
             toggle.addEventListener("click", () => {
