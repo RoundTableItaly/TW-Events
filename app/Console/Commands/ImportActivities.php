@@ -8,6 +8,7 @@ use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 
 class ImportActivities extends Command
 {
@@ -70,6 +71,9 @@ class ImportActivities extends Command
 
         $this->info("Activity import process finished.");
         Log::info("[ImportActivities] Activity import process finished.");
+
+        // Clear ICS cache after import
+        Cache::forget('ics_calendar_file');
     }
 
     private function fetchActivityList(ApiEndpoint $endpoint): array

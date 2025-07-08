@@ -42,8 +42,13 @@
                         <i class="bi bi-whatsapp"></i> Condividi
                     </button>
                 </li>
+                <li class="nav-item me-2">
+                    <a class="btn btn-link nav-link" href="{{ route('activities.ics') }}" title="Download ICS" download>
+                        <i class="bi bi-calendar-plus"></i> ICS
+                    </a>
+                </li>
                 <li class="nav-item dropdown">
-                    <button class="btn btn-link nav-link dropdown-toggle" id="bd-theme" type="button" aria-expanded="false" data-bs-toggle="dropdown" data-bs-display="static">
+                    <button class="btn btn-link nav-link" id="bd-theme" type="button" aria-expanded="false" data-bs-toggle="dropdown" data-bs-display="static">
                         <i class="bi bi-circle-half" id="bd-theme-icon"></i>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="bd-theme">

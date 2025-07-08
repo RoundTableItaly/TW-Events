@@ -193,3 +193,14 @@ body {
   }
 }
 
+/* Allinea a sinistra le voci della navbar anche su mobile */
+@media (max-width: 991.98px) {
+  .navbar-nav {
+    align-items: flex-start !important;
+  }
+  .navbar-nav .nav-link, .navbar-nav .btn-link {
+    justify-content: flex-start !important;
+    text-align: left !important;
+  }
+}
+

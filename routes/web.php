@@ -23,4 +23,6 @@ Route::get('/', function () {
 Route::get('/run-importer-d3a8e7f6c5b4a3b2c1d0e9f8a7b6c5d4', function () {
     Artisan::call('import:activities');
     return "Import command executed successfully.";
-}); 
+});
+
+Route::get('/events.ics', [\App\Http\Controllers\ActivityController::class, 'ics'])->name('activities.ics'); 
