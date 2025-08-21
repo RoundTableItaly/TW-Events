@@ -6,6 +6,16 @@ use Illuminate\Http\Request;
 define('LARAVEL_START', microtime(true));
 
 // |--------------------------------------------------------------------------
+// | Set Cache Headers
+// |--------------------------------------------------------------------------
+// |
+// | Set cache invalidation headers to prevent caching for 15 minutes
+// |
+header('Cache-Control: no-cache, no-store, must-revalidate, max-age=0');
+header('Pragma: no-cache');
+header('Expires: ' . gmdate('D, d M Y H:i:s \G\M\T', time() + 900)); // 15 minutes = 900 seconds
+
+// |--------------------------------------------------------------------------
 // | Check If The Application Is Under Maintenance
 // |--------------------------------------------------------------------------
 // |
