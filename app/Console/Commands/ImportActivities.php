@@ -128,6 +128,16 @@ class ImportActivities extends Command
         $detailedActivities = [];
         $baseUrl = rtrim($endpoint->url, '/') . '/activities/';
         Log::info("[ImportActivities] Fetching activity details", ['baseUrl' => $baseUrl, 'count' => is_array($activities) ? count($activities) : 0]);
+        
+        // Statistics for geocoding optimization
+        $geocodeStats = [
+            'attempted' => 0,
+            'skipped_coordinates_exist' => 0,
+            'skipped_no_location' => 0,
+            'location_removed' => 0,
+            'successful' => 0,
+            'failed' => 0
+        ];
 
         foreach ($activities as $activity) {
             try {
@@ -144,14 +154,81 @@ class ImportActivities extends Command
                     $fullActivity['location'] = str_replace('(Italië)', '(Italia)', $fullActivity['location']);
                 }
 
-                // Geocode if location exists but lat/lon are missing
-                if (!empty($fullActivity['location']) && (empty($fullActivity['latitude']) || empty($fullActivity['longitude']))) {
-                    Log::info("[ImportActivities] Attempting geocode", ['location' => $fullActivity['location'], 'activity_id' => $activity['id']]);
+                // Check if activity exists in database and get existing data for optimization
+                $existingActivity = Activity::find($activity['id']);
+                
+                // Geocode optimization logic
+                $shouldGeocode = false;
+                $geocodeReason = '';
+                
+                // If activity doesn't exist in database (new activity)
+                if (!$existingActivity) {
+                    if (!empty($fullActivity['location'])) {
+                        $shouldGeocode = true;
+                        $geocodeReason = 'new_activity';
+                    }
+                }
+                // If activity exists in database
+                else {
+                    // If location has been removed
+                    if (empty($fullActivity['location'])) {
+                        $fullActivity['latitude'] = null;
+                        $fullActivity['longitude'] = null;
+                        $geocodeStats['location_removed']++;
+                        Log::info("[ImportActivities] Location removed, coordinates set to null", [
+                            'activity_id' => $activity['id'],
+                            'previous_location' => $existingActivity->location
+                        ]);
+                    }
+                    // If location is present
+                    else {
+                        // If location has changed
+                        if ($existingActivity->location !== $fullActivity['location']) {
+                            $shouldGeocode = true;
+                            $geocodeReason = 'location_changed';
+                        }
+                        // If location is the same but coordinates are missing
+                        elseif (empty($fullActivity['latitude']) || empty($fullActivity['longitude'])) {
+                            $shouldGeocode = true;
+                            $geocodeReason = 'coordinates_missing';
+                        }
+                    }
+                }
+                
+                // Perform geocoding if needed
+                if ($shouldGeocode) {
+                    $geocodeStats['attempted']++;
+                    Log::info("[ImportActivities] Attempting geocode", [
+                        'location' => $fullActivity['location'], 
+                        'activity_id' => $activity['id'],
+                        'reason' => $geocodeReason
+                    ]);
                     $coords = $this->geocodeLocation($fullActivity['location']);
-                    Log::info("[ImportActivities] Geocode result", ['coords_found' => $coords ? true : false, 'activity_id' => $activity['id']]);
+                    Log::info("[ImportActivities] Geocode result", [
+                        'coords_found' => $coords ? true : false, 
+                        'activity_id' => $activity['id']
+                    ]);
                     if ($coords) {
                         $fullActivity['latitude'] = $coords['lat'];
                         $fullActivity['longitude'] = $coords['lon'];
+                        $geocodeStats['successful']++;
+                    } else {
+                        $geocodeStats['failed']++;
+                    }
+                } else {
+                    // Log skipped geocoding
+                    if ($existingActivity && !empty($existingActivity->latitude) && !empty($existingActivity->longitude)) {
+                        $geocodeStats['skipped_coordinates_exist']++;
+                        Log::info("[ImportActivities] Geocoding skipped - coordinates already exist", [
+                            'activity_id' => $activity['id'],
+                            'existing_location' => $existingActivity->location,
+                            'new_location' => $fullActivity['location']
+                        ]);
+                    } elseif (empty($fullActivity['location'])) {
+                        $geocodeStats['skipped_no_location']++;
+                        Log::info("[ImportActivities] Geocoding skipped - no location provided", [
+                            'activity_id' => $activity['id']
+                        ]);
                     }
                 }
                 Log::info("[ImportActivities] Final activity before upsert", ['activity_id' => $activity['id'], 'has_lat' => !empty($fullActivity['latitude']), 'has_lon' => !empty($fullActivity['longitude'])]);
@@ -165,7 +242,10 @@ class ImportActivities extends Command
         }
         
         $this->info("Fetched details for " . count($detailedActivities) . " activities.");
-        Log::info("[ImportActivities] Fetched details for activities", ['count' => count($detailedActivities)]);
+        Log::info("[ImportActivities] Fetched details for activities", [
+            'count' => count($detailedActivities),
+            'geocode_stats' => $geocodeStats
+        ]);
         return $detailedActivities;
     }
 
@@ -181,25 +261,40 @@ class ImportActivities extends Command
     private function geocodeLocation(string $location): ?array
     {
         try {
-            Log::info("[ImportActivities] Geocoding location", ['location' => $location]);
-            $userAgent = env('GEOCODER_USER_AGENT', 'RTIT-Activities/1.0');
-            $response = Http::withHeaders([
-                'User-Agent' => $userAgent
-            ])->get('https://nominatim.openstreetmap.org/search', [
-                'q' => $location,
-                'format' => 'json',
-                'accept-language' => 'it',
-                'limit' => 1
-            ]);
-            Log::info("[ImportActivities] Geocode response", ['status' => $response->status()]);
+            Log::info("[ImportActivities] Geocoding location (Google)", ['location' => $location]);
+            $googleApiKey = env('GOOGLE_API_KEY');
+            if (empty($googleApiKey)) {
+                Log::warning("[ImportActivities] GOOGLE_API_KEY not configured; skipping geocoding");
+                return null;
+            }
 
-            if ($response->status() === 200 && !empty($response->json())) {
-                $data = $response->json()[0];
-                Log::info("[ImportActivities] Geocode data", ['coords_found' => true]);
-                return ['lat' => (float)$data['lat'], 'lon' => (float)$data['lon']];
+            $response = Http::get('https://maps.googleapis.com/maps/api/geocode/json', [
+                'address' => $location,
+                'language' => 'it',
+                'region' => 'it',
+                'key' => $googleApiKey,
+            ]);
+            Log::info("[ImportActivities] Google Geocode response", ['status' => $response->status()]);
+
+            if ($response->status() === 200) {
+                $payload = $response->json();
+                $status = $payload['status'] ?? null;
+                $results = $payload['results'] ?? [];
+                if ($status === 'OK' && !empty($results)) {
+                    $locationData = $results[0]['geometry']['location'] ?? null;
+                    if ($locationData && isset($locationData['lat'], $locationData['lng'])) {
+                        Log::info("[ImportActivities] Geocode data (Google)", ['coords_found' => true]);
+                        return ['lat' => (float)$locationData['lat'], 'lon' => (float)$locationData['lng']];
+                    }
+                }
+
+                Log::warning("[ImportActivities] Google Geocode returned no data", [
+                    'api_status' => $payload['status'] ?? null,
+                    'error_message' => $payload['error_message'] ?? null
+                ]);
             } else {
-                Log::warning("[ImportActivities] Geocode failed or returned no data", [
-                    'status' => $response->status(),
+                Log::warning("[ImportActivities] Google Geocode HTTP error", [
+                    'http_status' => $response->status(),
                     'body' => $response->body()
                 ]);
             }
