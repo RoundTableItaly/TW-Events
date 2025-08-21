@@ -260,8 +260,8 @@ class ImportActivities extends Command
             }
             // Pulizia HTML da description
             if (!empty($activity['description'])) {
-                // Rimuove tag HTML indesiderati, lasciando solo quelli base (es: <p>, <ul>, <li>, <b>, <i>, <strong>, <em>, <a>)
-                $allowed_tags = '<p><ul><ol><li><b><i><strong><em><a>';
+                // Rimuove tag HTML indesiderati, lasciando solo quelli base (es: <p>, <ul>, <li>, <b>, <i>, <strong>, <em>, <a>, <br>)
+                $allowed_tags = '<p><ul><ol><li><b><i><strong><em><a><br>';
                 $activity['description'] = strip_tags($activity['description'], $allowed_tags);
             }
         }

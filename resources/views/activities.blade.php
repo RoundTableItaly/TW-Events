@@ -157,7 +157,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.js" integrity="sha256-tQ9c3dc1t0j9EV2Itwqx1ZK0qjrLayj0+l/lSEgU5ZM=" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.6/dist/purify.min.js" integrity="sha256-ieH6dkfLSVNw06mXrOQ4f10V2fTFrxI1LFPapACVYoc=" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.18/index.global.min.js" integrity="sha256-twlJ8c4S3MT/5wF9SMbpH5ml++7XY4HmSkdZdx/scpw=" crossorigin="anonymous"></script>
     <script src="{{ asset('js/app.js') }}"></script>
     </body>

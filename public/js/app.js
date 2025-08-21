@@ -286,7 +286,7 @@
             }
 
             // Card body
-            const safeShortDesc = DOMPurify.sanitize((activity.description || "").substring(0, 200), { ALLOWED_TAGS: ["b", "i", "em", "strong", "a", "ul", "ol", "li", "br"] });
+            const shortDesc = (activity.description || "").substring(0, 200);
             const cardBody = document.createElement("div");
             cardBody.className = "card-body d-flex flex-column h-100";
             cardBody.innerHTML = `
@@ -294,7 +294,7 @@
                 <p class='card-text mb-1'><span class='text-danger'>📍</span> <b>Luogo:</b> <i>${activity.location || ""}</i></p>
                 <p class='card-text mb-1'><b>Inizio:</b> ${formatDateIT(activity.start_date)}</p>
                 <p class='card-text mb-1'><b>Fine:</b> ${formatDateIT(activity.end_date)}</p>
-                <div class='card-text mb-2'>${safeShortDesc}${activity.description && activity.description.length > 200 ? "..." : ""}</div>
+                <div class='card-text mb-2'>${shortDesc}${activity.description && activity.description.length > 200 ? "..." : ""}</div>
                 <button id='read-more-btn' class='btn btn-primary mt-auto' type='button'>Leggi tutto...</button>
             `;
             card.appendChild(cardBody);
@@ -331,7 +331,7 @@
                     <p class='mb-1'><span class='text-danger'>📍</span> <b>Luogo:</b> <i>${activity.location || ""}</i></p>
                     <p class='mb-1'><b>Inizio:</b> ${formatDateIT(activity.start_date)}</p>
                     <p class='mb-1'><b>Fine:</b> ${formatDateIT(activity.end_date)}</p>
-                    <div class='mt-2'>${DOMPurify.sanitize(activity.description || "", { ALLOWED_TAGS: ["b", "i", "em", "strong", "a", "ul", "ol", "li", "br"] })}</div>
+                    <div class='mt-2'>${activity.description || ""}</div>
                     ${activity.url ? `<a href='${activity.url}' class='btn btn-outline-primary mt-3' target='_blank'>Vai all'evento</a>` : ""}
                 </div></div>`;
                 document.getElementById("activityModalBody").innerHTML = modalBody;
