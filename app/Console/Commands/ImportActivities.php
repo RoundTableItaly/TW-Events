@@ -298,6 +298,9 @@ class ImportActivities extends Command
         } else {
             // Log skipped geocoding
             if ($existingActivity && !empty($existingActivity->latitude) && !empty($existingActivity->longitude)) {
+                // Copy existing coordinates to preserve them
+                $fullActivity['latitude'] = $existingActivity->latitude;
+                $fullActivity['longitude'] = $existingActivity->longitude;
                 $geocodeStats['skipped_coordinates_exist']++;
                 Log::info("[ImportActivities] Geocoding skipped - coordinates already exist", [
                     'activity_id' => $activityId,
