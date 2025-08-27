@@ -101,13 +101,13 @@ class ImportActivities extends Command
     private function fetchActivityList(ApiEndpoint $endpoint): array
     {
         $baseUrl = rtrim($endpoint->url, '/') . '/activities/';
-        Log::info("[ImportActivities] Fetching activity list", [
+        Log::debug("[ImportActivities] Fetching activity list", [
             'endpoint_id' => $endpoint->id,
             'endpoint_description' => $endpoint->description,
             'url' => $baseUrl
         ]);
         $response = Http::withHeaders($this->getAuthHeaders($endpoint))->get($baseUrl);
-        Log::info("[ImportActivities] Activity list response", [
+        Log::debug("[ImportActivities] Activity list response", [
             'endpoint_id' => $endpoint->id,
             'endpoint_description' => $endpoint->description,
             'status' => $response->status()
@@ -157,7 +157,7 @@ class ImportActivities extends Command
     {
         $detailedActivities = [];
         $baseUrl = rtrim($endpoint->url, '/') . '/activities/';
-        Log::info("[ImportActivities] Fetching activity details", [
+        Log::debug("[ImportActivities] Fetching activity details", [
             'endpoint_id' => $endpoint->id,
             'endpoint_description' => $endpoint->description,
             'baseUrl' => $baseUrl, 
@@ -167,14 +167,14 @@ class ImportActivities extends Command
         foreach ($activities as $activity) {
             try {
                 $detailUrl = $baseUrl . $activity['id'] . '/';
-                Log::info("[ImportActivities] Fetching activity detail", [
+                Log::debug("[ImportActivities] Fetching activity detail", [
                     'endpoint_id' => $endpoint->id,
                     'endpoint_description' => $endpoint->description,
                     'detailUrl' => $detailUrl, 
                     'activity_id' => $activity['id']
                 ]);
                 $response = Http::withHeaders($this->getAuthHeaders($endpoint))->get($detailUrl);
-                Log::info("[ImportActivities] Activity detail response", [
+                Log::debug("[ImportActivities] Activity detail response", [
                     'endpoint_id' => $endpoint->id,
                     'endpoint_description' => $endpoint->description,
                     'status' => $response->status(), 
@@ -214,7 +214,7 @@ class ImportActivities extends Command
     private function geocodeLocation(string $location): ?array
     {
         try {
-            Log::info("[ImportActivities] Geocoding location (Google)", ['location' => $location]);
+            Log::debug("[ImportActivities] Geocoding location (Google)", ['location' => $location]);
             $googleApiKey = env('GOOGLE_API_KEY');
             if (empty($googleApiKey)) {
                 Log::warning("[ImportActivities] GOOGLE_API_KEY not configured; skipping geocoding");
@@ -227,7 +227,7 @@ class ImportActivities extends Command
                 'region' => 'it',
                 'key' => $googleApiKey,
             ]);
-            Log::info("[ImportActivities] Google Geocode response", ['status' => $response->status()]);
+            Log::debug("[ImportActivities] Google Geocode response", ['status' => $response->status()]);
 
             if ($response->status() === 200) {
                 $payload = $response->json();
@@ -236,7 +236,7 @@ class ImportActivities extends Command
                 if ($status === 'OK' && !empty($results)) {
                     $locationData = $results[0]['geometry']['location'] ?? null;
                     if ($locationData && isset($locationData['lat'], $locationData['lng'])) {
-                        Log::info("[ImportActivities] Geocode data (Google)", ['coords_found' => true]);
+                        Log::debug("[ImportActivities] Geocode data (Google)", ['coords_found' => true]);
                         return ['lat' => (float)$locationData['lat'], 'lon' => (float)$locationData['lng']];
                     }
                 }
@@ -300,10 +300,10 @@ class ImportActivities extends Command
                     $activity['longitude'] = null;
                     
                     $geocodeStats['location_removed']++;
-                    Log::info("[ImportActivities] Location removed, coordinates set to null", [
-                        'activity_id' => $activityId,
-                        'previous_location' => $existingActivity->location
-                    ]);
+                                    Log::debug("[ImportActivities] Location removed, coordinates set to null", [
+                    'activity_id' => $activityId,
+                    'previous_location' => $existingActivity->location
+                ]);
                 }
                 // If location is present
                 else {
@@ -323,13 +323,13 @@ class ImportActivities extends Command
             // Perform geocoding if needed
             if ($shouldGeocode) {
                 $geocodeStats['attempted']++;
-                Log::info("[ImportActivities] Attempting geocode", [
+                Log::debug("[ImportActivities] Attempting geocode", [
                     'location' => $activity['location'], 
                     'activity_id' => $activityId,
                     'reason' => $geocodeReason
                 ]);
                 $coords = $this->geocodeLocation($activity['location']);
-                Log::info("[ImportActivities] Geocode result", [
+                Log::debug("[ImportActivities] Geocode result", [
                     'coords_found' => $coords ? true : false, 
                     'activity_id' => $activityId
                 ]);
@@ -347,14 +347,14 @@ class ImportActivities extends Command
                     $activity['latitude'] = $existingActivity->latitude;
                     $activity['longitude'] = $existingActivity->longitude;
                     $geocodeStats['skipped_coordinates_exist']++;
-                    Log::info("[ImportActivities] Geocoding skipped - coordinates already exist", [
+                    Log::debug("[ImportActivities] Geocoding skipped - coordinates already exist", [
                         'activity_id' => $activityId,
                         'existing_location' => $existingActivity->location,
                         'new_location' => $activity['location']
                     ]);
                 } elseif (empty($activity['location'])) {
                     $geocodeStats['skipped_no_location']++;
-                    Log::info("[ImportActivities] Geocoding skipped - no location provided", [
+                    Log::debug("[ImportActivities] Geocoding skipped - no location provided", [
                         'activity_id' => $activityId
                     ]);
                 }
@@ -397,7 +397,7 @@ class ImportActivities extends Command
             'created_at' => Carbon::now(),
             'updated_at' => Carbon::now(),
         ], $activities);
-        Log::info("[ImportActivities] Upsert data prepared", ['count' => count($upsertData)]);
+        Log::debug("[ImportActivities] Upsert data prepared", ['count' => count($upsertData)]);
 
         // Use upsert to perform an efficient "insert or update"
         Activity::upsert($upsertData, ['id'], [
