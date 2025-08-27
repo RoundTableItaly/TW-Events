@@ -45,19 +45,40 @@ class ImportActivities extends Command
         $allActivities = [];
 
         foreach ($endpoints as $endpoint) {
-            $this->info("Processing endpoint: {$endpoint->url} ({$endpoint->description})");
-            Log::info("[ImportActivities] Processing endpoint", ['endpoint_url' => $endpoint->url, 'endpoint_description' => $endpoint->description]);
+            $this->info("Processing endpoint: {$endpoint->description} (Area: {$endpoint->area}, ID: {$endpoint->id})");
+            Log::info("[ImportActivities] Processing endpoint", [
+                'endpoint_id' => $endpoint->id,
+                'endpoint_description' => $endpoint->description,
+                'endpoint_area' => $endpoint->area
+            ]);
             try {
                 $activitiesFromApi = $this->fetchActivityList($endpoint);
-                Log::info("[ImportActivities] Activities fetched from API", ['count' => is_array($activitiesFromApi) ? count($activitiesFromApi) : 0]);
+                Log::info("[ImportActivities] Activities fetched from API", [
+                    'endpoint_id' => $endpoint->id,
+                    'endpoint_description' => $endpoint->description,
+                    'count' => is_array($activitiesFromApi) ? count($activitiesFromApi) : 0
+                ]);
                 $filteredActivities = $this->filterActivities($activitiesFromApi);
-                Log::info("[ImportActivities] Filtered activities", ['count' => is_array($filteredActivities) ? count($filteredActivities) : 0]);
+                Log::info("[ImportActivities] Filtered activities", [
+                    'endpoint_id' => $endpoint->id,
+                    'endpoint_description' => $endpoint->description,
+                    'count' => is_array($filteredActivities) ? count($filteredActivities) : 0
+                ]);
                 $detailedActivities = $this->fetchActivityDetails($filteredActivities, $endpoint);
-                Log::info("[ImportActivities] Detailed activities", ['count' => is_array($detailedActivities) ? count($detailedActivities) : 0]);
+                Log::info("[ImportActivities] Detailed activities", [
+                    'endpoint_id' => $endpoint->id,
+                    'endpoint_description' => $endpoint->description,
+                    'count' => is_array($detailedActivities) ? count($detailedActivities) : 0
+                ]);
                 $allActivities = array_merge($allActivities, $detailedActivities);
             } catch (\Exception $e) {
-                $this->error("Failed to process endpoint {$endpoint->url}: {$e->getMessage()}");
-                Log::error("[ImportActivities] Endpoint processing failed", ['endpoint_url' => $endpoint->url, 'exception' => $e->getMessage()]);
+                $this->error("Failed to process endpoint {$endpoint->description} (ID: {$endpoint->id}): {$e->getMessage()}");
+                Log::error("[ImportActivities] Endpoint processing failed", [
+                    'endpoint_id' => $endpoint->id,
+                    'endpoint_description' => $endpoint->description,
+                    'endpoint_area' => $endpoint->area,
+                    'exception' => $e->getMessage()
+                ]);
             }
         }
         
@@ -66,6 +87,7 @@ class ImportActivities extends Command
 
         if (!empty($allActivities)) {
             $allActivities = $this->processActivityFields($allActivities);
+            $allActivities = $this->processGeocoding($allActivities);
             $this->upsertActivities($allActivities);
         }
 
@@ -79,9 +101,17 @@ class ImportActivities extends Command
     private function fetchActivityList(ApiEndpoint $endpoint): array
     {
         $baseUrl = rtrim($endpoint->url, '/') . '/activities/';
-        Log::info("[ImportActivities] Fetching activity list", ['url' => $baseUrl]);
+        Log::info("[ImportActivities] Fetching activity list", [
+            'endpoint_id' => $endpoint->id,
+            'endpoint_description' => $endpoint->description,
+            'url' => $baseUrl
+        ]);
         $response = Http::withHeaders($this->getAuthHeaders($endpoint))->get($baseUrl);
-        Log::info("[ImportActivities] Activity list response", ['status' => $response->status()]);
+        Log::info("[ImportActivities] Activity list response", [
+            'endpoint_id' => $endpoint->id,
+            'endpoint_description' => $endpoint->description,
+            'status' => $response->status()
+        ]);
         $response->throw(); // Throw an exception for 4xx/5xx responses
         
         $this->info("Fetched " . count($response->json()) . " activities from list endpoint.");
@@ -127,40 +157,33 @@ class ImportActivities extends Command
     {
         $detailedActivities = [];
         $baseUrl = rtrim($endpoint->url, '/') . '/activities/';
-        Log::info("[ImportActivities] Fetching activity details", ['baseUrl' => $baseUrl, 'count' => is_array($activities) ? count($activities) : 0]);
-        
-        // Statistics for geocoding optimization
-        $geocodeStats = [
-            'attempted' => 0,
-            'skipped_coordinates_exist' => 0,
-            'skipped_no_location' => 0,
-            'location_removed' => 0,
-            'successful' => 0,
-            'failed' => 0
-        ];
+        Log::info("[ImportActivities] Fetching activity details", [
+            'endpoint_id' => $endpoint->id,
+            'endpoint_description' => $endpoint->description,
+            'baseUrl' => $baseUrl, 
+            'count' => is_array($activities) ? count($activities) : 0
+        ]);
 
         foreach ($activities as $activity) {
             try {
                 $detailUrl = $baseUrl . $activity['id'] . '/';
-                Log::info("[ImportActivities] Fetching activity detail", ['detailUrl' => $detailUrl, 'activity_id' => $activity['id']]);
+                Log::info("[ImportActivities] Fetching activity detail", [
+                    'endpoint_id' => $endpoint->id,
+                    'endpoint_description' => $endpoint->description,
+                    'detailUrl' => $detailUrl, 
+                    'activity_id' => $activity['id']
+                ]);
                 $response = Http::withHeaders($this->getAuthHeaders($endpoint))->get($detailUrl);
-                Log::info("[ImportActivities] Activity detail response", ['status' => $response->status(), 'activity_id' => $activity['id']]);
+                Log::info("[ImportActivities] Activity detail response", [
+                    'endpoint_id' => $endpoint->id,
+                    'endpoint_description' => $endpoint->description,
+                    'status' => $response->status(), 
+                    'activity_id' => $activity['id']
+                ]);
                 
                 $details = $response->successful() ? $response->json() : [];
                 $fullActivity = array_merge($activity, $details);
 
-                // Pulizia campo location
-                if (!empty($fullActivity['location']) && strpos($fullActivity['location'], '(Italië)') !== false) {
-                    $fullActivity['location'] = str_replace('(Italië)', '(Italia)', $fullActivity['location']);
-                }
-
-                // Check if activity exists in database and get existing data for optimization
-                $existingActivity = Activity::find($activity['id']);
-                
-                // Process geocoding logic
-                list($fullActivity) = $this->processGeocoding($fullActivity, $existingActivity, $geocodeStats, $activity['id']);
-                
-                Log::info("[ImportActivities] Final activity before upsert", ['activity_id' => $activity['id'], 'has_lat' => !empty($fullActivity['latitude']), 'has_lon' => !empty($fullActivity['longitude'])]);
                 $fullActivity['api_endpoint_id'] = $endpoint->id;
                 $detailedActivities[] = $fullActivity;
 
@@ -172,8 +195,9 @@ class ImportActivities extends Command
         
         $this->info("Fetched details for " . count($detailedActivities) . " activities.");
         Log::info("[ImportActivities] Fetched details for activities", [
-            'count' => count($detailedActivities),
-            'geocode_stats' => $geocodeStats
+            'endpoint_id' => $endpoint->id,
+            'endpoint_description' => $endpoint->description,
+            'count' => count($detailedActivities)
         ]);
         return $detailedActivities;
     }
@@ -234,87 +258,118 @@ class ImportActivities extends Command
         return null;
     }
 
-    private function processGeocoding(array $fullActivity, ?Activity $existingActivity, array &$geocodeStats, int $activityId): array
+    private function processGeocoding(array $activities): array
     {
-        // Geocode optimization logic
-        $shouldGeocode = false;
-        $geocodeReason = '';
-        
-        // If activity doesn't exist in database (new activity)
-        if (!$existingActivity) {
-            if (!empty($fullActivity['location'])) {
-                $shouldGeocode = true;
-                $geocodeReason = 'new_activity';
+        $this->info("Processing geocoding for " . count($activities) . " activities...");
+        Log::info("[ImportActivities] Starting geocoding process", ['total_activities' => count($activities)]);
+
+        // Statistics for geocoding optimization
+        $geocodeStats = [
+            'attempted' => 0,
+            'skipped_coordinates_exist' => 0,
+            'skipped_no_location' => 0,
+            'location_removed' => 0,
+            'successful' => 0,
+            'failed' => 0
+        ];
+
+        $processedActivities = [];
+
+        foreach ($activities as $activity) {
+            $activityId = $activity['id'];
+            
+            // Check if activity exists in database and get existing data for optimization
+            $existingActivity = Activity::find($activityId);
+            
+            // Geocode optimization logic
+            $shouldGeocode = false;
+            $geocodeReason = '';
+            
+            // If activity doesn't exist in database (new activity)
+            if (!$existingActivity) {
+                if (!empty($activity['location'])) {
+                    $shouldGeocode = true;
+                    $geocodeReason = 'new_activity';
+                }
             }
-        }
-        // If activity exists in database
-        else {
-            // If location has been removed
-            if (empty($fullActivity['location'])) {
-                $fullActivity['latitude'] = null;
-                $fullActivity['longitude'] = null;
-                
-                $geocodeStats['location_removed']++;
-                Log::info("[ImportActivities] Location removed, coordinates set to null", [
-                    'activity_id' => $activityId,
-                    'previous_location' => $existingActivity->location
-                ]);
-            }
-            // If location is present
+            // If activity exists in database
             else {
-                // If location has changed
-                if ($existingActivity->location !== $fullActivity['location']) {
-                    $shouldGeocode = true;
-                    $geocodeReason = 'location_changed';
+                // If location has been removed
+                if (empty($activity['location'])) {
+                    $activity['latitude'] = null;
+                    $activity['longitude'] = null;
+                    
+                    $geocodeStats['location_removed']++;
+                    Log::info("[ImportActivities] Location removed, coordinates set to null", [
+                        'activity_id' => $activityId,
+                        'previous_location' => $existingActivity->location
+                    ]);
                 }
-                // If location is the same but coordinates are missing in existing activity
-                elseif (empty($existingActivity->latitude) || empty($existingActivity->longitude)) {
-                    $shouldGeocode = true;
-                    $geocodeReason = 'coordinates_missing';
+                // If location is present
+                else {
+                    // If location has changed
+                    if ($existingActivity->location !== $activity['location']) {
+                        $shouldGeocode = true;
+                        $geocodeReason = 'location_changed';
+                    }
+                    // If location is the same but coordinates are missing in existing activity
+                    elseif (empty($existingActivity->latitude) || empty($existingActivity->longitude)) {
+                        $shouldGeocode = true;
+                        $geocodeReason = 'coordinates_missing';
+                    }
                 }
             }
-        }
-        
-        // Perform geocoding if needed
-        if ($shouldGeocode) {
-            $geocodeStats['attempted']++;
-            Log::info("[ImportActivities] Attempting geocode", [
-                'location' => $fullActivity['location'], 
-                'activity_id' => $activityId,
-                'reason' => $geocodeReason
-            ]);
-            $coords = $this->geocodeLocation($fullActivity['location']);
-            Log::info("[ImportActivities] Geocode result", [
-                'coords_found' => $coords ? true : false, 
-                'activity_id' => $activityId
-            ]);
-            if ($coords) {
-                $fullActivity['latitude'] = $coords['lat'];
-                $fullActivity['longitude'] = $coords['lon'];
-                $geocodeStats['successful']++;
-            } else {
-                $geocodeStats['failed']++;
-            }
-        } else {
-            // Log skipped geocoding
-            if ($existingActivity && !empty($existingActivity->latitude) && !empty($existingActivity->longitude)) {
-                // Copy existing coordinates to preserve them
-                $fullActivity['latitude'] = $existingActivity->latitude;
-                $fullActivity['longitude'] = $existingActivity->longitude;
-                $geocodeStats['skipped_coordinates_exist']++;
-                Log::info("[ImportActivities] Geocoding skipped - coordinates already exist", [
+            
+            // Perform geocoding if needed
+            if ($shouldGeocode) {
+                $geocodeStats['attempted']++;
+                Log::info("[ImportActivities] Attempting geocode", [
+                    'location' => $activity['location'], 
                     'activity_id' => $activityId,
-                    'existing_location' => $existingActivity->location,
-                    'new_location' => $fullActivity['location']
+                    'reason' => $geocodeReason
                 ]);
-            } elseif (empty($fullActivity['location'])) {
-                $geocodeStats['skipped_no_location']++;
-                Log::info("[ImportActivities] Geocoding skipped - no location provided", [
+                $coords = $this->geocodeLocation($activity['location']);
+                Log::info("[ImportActivities] Geocode result", [
+                    'coords_found' => $coords ? true : false, 
                     'activity_id' => $activityId
                 ]);
+                if ($coords) {
+                    $activity['latitude'] = $coords['lat'];
+                    $activity['longitude'] = $coords['lon'];
+                    $geocodeStats['successful']++;
+                } else {
+                    $geocodeStats['failed']++;
+                }
+            } else {
+                // Log skipped geocoding
+                if ($existingActivity && !empty($existingActivity->latitude) && !empty($existingActivity->longitude)) {
+                    // Copy existing coordinates to preserve them
+                    $activity['latitude'] = $existingActivity->latitude;
+                    $activity['longitude'] = $existingActivity->longitude;
+                    $geocodeStats['skipped_coordinates_exist']++;
+                    Log::info("[ImportActivities] Geocoding skipped - coordinates already exist", [
+                        'activity_id' => $activityId,
+                        'existing_location' => $existingActivity->location,
+                        'new_location' => $activity['location']
+                    ]);
+                } elseif (empty($activity['location'])) {
+                    $geocodeStats['skipped_no_location']++;
+                    Log::info("[ImportActivities] Geocoding skipped - no location provided", [
+                        'activity_id' => $activityId
+                    ]);
+                }
             }
+            
+            $processedActivities[] = $activity;
         }
-        return [$fullActivity];
+        
+        $this->info("Geocoding process completed.");
+        Log::info("[ImportActivities] Geocoding process completed", [
+            'total_processed' => count($processedActivities),
+            'geocode_stats' => $geocodeStats
+        ]);
+        
+        return $processedActivities;
     }
 
     private function upsertActivities(array $activities): void
