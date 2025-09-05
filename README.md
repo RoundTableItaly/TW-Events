@@ -145,6 +145,38 @@ Deploying a Laravel application involves a few more steps than running it locall
     ```
     The scheduler is configured in `app/Console/Kernel.php` to run the `import:activities` command hourly by default.
 
+## Package Management
+
+### Checking for Updates
+
+To check if there are new versions of packages available:
+
+```bash
+# Check all packages for updates
+docker-compose -f docker-compose-dev.yml exec app composer outdated
+
+# Check only direct dependencies (recommended)
+docker-compose -f docker-compose-dev.yml exec app composer outdated --direct
+
+# Check for security vulnerabilities
+docker-compose -f docker-compose-dev.yml exec app composer audit
+```
+
+### Updating Packages
+
+To update packages:
+
+```bash
+# Update all packages (patch and minor versions only)
+docker-compose -f docker-compose-dev.yml exec app composer update
+
+# Update a specific package
+docker-compose -f docker-compose-dev.yml exec app composer update laravel/framework
+
+# Update only direct dependencies
+docker-compose -f docker-compose-dev.yml exec app composer update --with-dependencies
+```
+
 ## Project Structure
 
 -   `app/Console/Commands/ImportActivities.php`: The core data aggregation and geocoding logic.

@@ -85,6 +85,9 @@ class ImportActivities extends Command
         $this->info("Finished fetching data. Found " . count($allActivities) . " total activities to process.");
         Log::info("[ImportActivities] Finished fetching data", ['total_activities' => count($allActivities)]);
 
+        // Soft delete activities that are no longer present in the API
+        $this->softDeleteObsoleteActivities($endpoints, $allActivities);
+
         if (!empty($allActivities)) {
             $allActivities = $this->processActivityFields($allActivities);
             $allActivities = $this->processGeocoding($allActivities);
@@ -377,37 +380,201 @@ class ImportActivities extends Command
         $this->info("Saving " . count($activities) . " activities to the database...");
         Log::info("[ImportActivities] Upserting activities", ['count' => count($activities)]);
 
-        // Prepare data for upsert by mapping keys
-        $upsertData = array_map(fn($activity) => [
-            'id' => $activity['id'],
-            'level_id' => $activity['level_id'],
-            'name' => $activity['name'],
-            'type' => $activity['type'],
-            'description' => $activity['description'] ?? null,
-            'start_date' => isset($activity['start_date']) ? Carbon::parse($activity['start_date']) : null,
-            'end_date' => isset($activity['end_date']) ? Carbon::parse($activity['end_date']) : null,
-            'rt_type' => $activity['rt_type'],
-            'rt_visibility' => $activity['rt_visibility'],
-            'location' => $activity['location'] ?? null,
-            'cover_picture' => $activity['cover_picture'] ?? null,
-            'canceled' => $activity['canceled'] ?? false,
-            'latitude' => $activity['latitude'] ?? null,
-            'longitude' => $activity['longitude'] ?? null,
-            'api_endpoint_id' => $activity['api_endpoint_id'],
-            'created_at' => Carbon::now(),
-            'updated_at' => Carbon::now(),
-        ], $activities);
-        Log::debug("[ImportActivities] Upsert data prepared", ['count' => count($upsertData)]);
+        $timestampStats = [
+            'new_activities' => 0,
+            'updated_activities' => 0,
+            'unchanged_activities' => 0,
+            'restored_activities' => 0
+        ];
 
-        // Use upsert to perform an efficient "insert or update"
-        Activity::upsert($upsertData, ['id'], [
-            'level_id', 'name', 'type', 'description', 'start_date', 'end_date',
-            'rt_type', 'rt_visibility', 'location', 'cover_picture', 'canceled',
-            'latitude', 'longitude', 'api_endpoint_id', 'updated_at'
-        ]);
+        // Prepare data for upsert by mapping keys with intelligent timestamp handling
+        $upsertData = array_map(function($activity) use (&$timestampStats) {
+            $activityId = $activity['id'];
+            $now = Carbon::now();
+            
+            // Check if activity already exists (including soft-deleted ones)
+            $existingActivity = Activity::withTrashed()->find($activityId);
+            
+            if ($existingActivity) {
+                // Check if activity was soft-deleted and needs to be restored
+                if ($existingActivity->trashed()) {
+                    $timestampStats['restored_activities']++;
+                    Log::info("[ImportActivities] Restoring soft-deleted activity", [
+                        'activity_id' => $activityId,
+                        'name' => $activity['name'],
+                        'deleted_at' => $existingActivity->deleted_at
+                    ]);
+                    
+                    // Restore the activity first
+                    $existingActivity->restore();
+                    
+                    // Then update it with new data
+                    return [
+                        'id' => $activityId,
+                        'level_id' => $activity['level_id'],
+                        'name' => $activity['name'],
+                        'type' => $activity['type'],
+                        'description' => $activity['description'] ?? null,
+                        'start_date' => isset($activity['start_date']) ? Carbon::parse($activity['start_date']) : null,
+                        'end_date' => isset($activity['end_date']) ? Carbon::parse($activity['end_date']) : null,
+                        'rt_type' => $activity['rt_type'],
+                        'rt_visibility' => $activity['rt_visibility'],
+                        'location' => $activity['location'] ?? null,
+                        'cover_picture' => $activity['cover_picture'] ?? null,
+                        'canceled' => $activity['canceled'] ?? false,
+                        'latitude' => $activity['latitude'] ?? null,
+                        'longitude' => $activity['longitude'] ?? null,
+                        'api_endpoint_id' => $activity['api_endpoint_id'],
+                        'created_at' => $existingActivity->created_at, // Preserve original creation time
+                        'updated_at' => $now, // Update modification time
+                    ];
+                }
+                // Activity exists - check if it needs updating
+                $needsUpdate = $this->activityNeedsUpdate($existingActivity, $activity);
+                
+                if ($needsUpdate) {
+                    $timestampStats['updated_activities']++;
+                    Log::debug("[ImportActivities] Activity needs update", [
+                        'activity_id' => $activityId,
+                        'name' => $activity['name']
+                    ]);
+                    return [
+                        'id' => $activityId,
+                        'level_id' => $activity['level_id'],
+                        'name' => $activity['name'],
+                        'type' => $activity['type'],
+                        'description' => $activity['description'] ?? null,
+                        'start_date' => isset($activity['start_date']) ? Carbon::parse($activity['start_date']) : null,
+                        'end_date' => isset($activity['end_date']) ? Carbon::parse($activity['end_date']) : null,
+                        'rt_type' => $activity['rt_type'],
+                        'rt_visibility' => $activity['rt_visibility'],
+                        'location' => $activity['location'] ?? null,
+                        'cover_picture' => $activity['cover_picture'] ?? null,
+                        'canceled' => $activity['canceled'] ?? false,
+                        'latitude' => $activity['latitude'] ?? null,
+                        'longitude' => $activity['longitude'] ?? null,
+                        'api_endpoint_id' => $activity['api_endpoint_id'],
+                        'created_at' => $existingActivity->created_at, // Preserve original creation time
+                        'updated_at' => $now, // Update modification time
+                    ];
+                } else {
+                    $timestampStats['unchanged_activities']++;
+                    Log::debug("[ImportActivities] Activity unchanged", [
+                        'activity_id' => $activityId,
+                        'name' => $activity['name']
+                    ]);
+                    return null; // Skip this activity
+                }
+            } else {
+                // New activity
+                $timestampStats['new_activities']++;
+                Log::debug("[ImportActivities] New activity", [
+                    'activity_id' => $activityId,
+                    'name' => $activity['name']
+                ]);
+                return [
+                    'id' => $activityId,
+                    'level_id' => $activity['level_id'],
+                    'name' => $activity['name'],
+                    'type' => $activity['type'],
+                    'description' => $activity['description'] ?? null,
+                    'start_date' => isset($activity['start_date']) ? Carbon::parse($activity['start_date']) : null,
+                    'end_date' => isset($activity['end_date']) ? Carbon::parse($activity['end_date']) : null,
+                    'rt_type' => $activity['rt_type'],
+                    'rt_visibility' => $activity['rt_visibility'],
+                    'location' => $activity['location'] ?? null,
+                    'cover_picture' => $activity['cover_picture'] ?? null,
+                    'canceled' => $activity['canceled'] ?? false,
+                    'latitude' => $activity['latitude'] ?? null,
+                    'longitude' => $activity['longitude'] ?? null,
+                    'api_endpoint_id' => $activity['api_endpoint_id'],
+                    'created_at' => $now, // Set creation time for new activity
+                    'updated_at' => $now, // Set modification time for new activity
+                ];
+            }
+        }, $activities);
+
+        // Filter out null values (unchanged activities)
+        $upsertData = array_filter($upsertData, fn($item) => $item !== null);
         
-        $this->info("Database operations complete.");
-        Log::info("[ImportActivities] Database operations complete.");
+        Log::debug("[ImportActivities] Upsert data prepared", [
+            'total_activities' => count($activities),
+            'activities_to_upsert' => count($upsertData),
+            'timestamp_stats' => $timestampStats
+        ]);
+
+        if (!empty($upsertData)) {
+            // Use upsert to perform an efficient "insert or update"
+            Activity::upsert($upsertData, ['id'], [
+                'level_id', 'name', 'type', 'description', 'start_date', 'end_date',
+                'rt_type', 'rt_visibility', 'location', 'cover_picture', 'canceled',
+                'latitude', 'longitude', 'api_endpoint_id', 'updated_at'
+            ]);
+        }
+        
+        $this->info("Database operations complete. New: {$timestampStats['new_activities']}, Updated: {$timestampStats['updated_activities']}, Restored: {$timestampStats['restored_activities']}, Unchanged: {$timestampStats['unchanged_activities']}");
+        Log::info("[ImportActivities] Database operations complete", $timestampStats);
+    }
+
+    /**
+     * Check if an activity needs to be updated by comparing hashes
+     */
+    private function activityNeedsUpdate(Activity $existing, array $newData): bool
+    {
+        // Normalize data for comparison
+        $existingHash = $this->generateActivityHash($existing);
+        $newHash = $this->generateActivityHash($newData);
+        
+        $needsUpdate = $existingHash !== $newHash;
+        
+        if ($needsUpdate) {
+            Log::debug("[ImportActivities] Activity needs update", [
+                'activity_id' => $existing->id,
+                'name' => $existing->name,
+                'existing_hash' => $existingHash,
+                'new_hash' => $newHash
+            ]);
+        }
+        
+        return $needsUpdate;
+    }
+
+    /**
+     * Generate a hash for activity data comparison
+     */
+    private function generateActivityHash($data): string
+    {
+        // Fields to include in hash comparison
+        $fieldsToHash = [
+            'level_id',
+            'name', 
+            'type',
+            'description',
+            'start_date',
+            'end_date',
+            'rt_type',
+            'rt_visibility',
+            'location',
+            'cover_picture',
+            'canceled',
+            'latitude',
+            'longitude',
+            'api_endpoint_id'
+        ];
+
+        $dataToHash = [];
+        
+        foreach ($fieldsToHash as $field) {
+            if ($data instanceof Activity) {
+                $dataToHash[$field] = $data->$field;
+            } elseif (is_array($data)) {
+                $dataToHash[$field] = $data[$field] ?? null;
+            }
+        }
+        
+        // Sort array keys to ensure consistent hash regardless of field order
+        ksort($dataToHash);
+        return hash('md5', serialize($dataToHash));
     }
 
     /**
@@ -429,5 +596,134 @@ class ImportActivities extends Command
         }
         unset($activity); // buona pratica per riferimenti
         return $activities;
+    }
+
+    /**
+     * Soft delete activities that are no longer present in the API response
+     */
+    private function softDeleteObsoleteActivities($endpoints, array $allActivities): void
+    {
+        $this->info("Starting soft delete of obsolete activities...");
+        Log::info("[ImportActivities] Starting soft delete of obsolete activities", [
+            'total_activities_from_api' => count($allActivities),
+            'total_endpoints' => count($endpoints)
+        ]);
+
+        // Early return if no activities
+        if (empty($allActivities)) {
+            $this->info("No activities from API - skipping soft delete process.");
+            Log::info("[ImportActivities] No activities from API - skipping soft delete");
+            return;
+        }
+
+        // Group activities by endpoint using array_reduce for better performance
+        $activitiesByEndpoint = array_reduce($allActivities, function($carry, $activity) {
+            $endpointId = $activity['api_endpoint_id'];
+            $carry[$endpointId][] = $activity['id'];
+            return $carry;
+        }, []);
+
+        $softDeleteStats = [
+            'endpoints_processed' => 0,
+            'activities_soft_deleted' => 0,
+            'activities_preserved' => 0,
+            'endpoints_with_obsolete_activities' => 0
+        ];
+
+        foreach ($endpoints as $endpoint) {
+            $endpointId = $endpoint->id;
+            $currentActivityIds = $activitiesByEndpoint[$endpointId] ?? [];
+            
+            Log::debug("[ImportActivities] Processing endpoint for soft delete", [
+                'endpoint_id' => $endpointId,
+                'endpoint_description' => $endpoint->description,
+                'current_activities_count' => count($currentActivityIds)
+            ]);
+            
+            try {
+                // Find obsolete activities for this endpoint
+                $obsoleteActivities = $this->findObsoleteActivities($endpointId, $currentActivityIds);
+                
+                if (!empty($obsoleteActivities)) {
+                    $this->performSoftDelete($obsoleteActivities, $endpoint);
+                    $softDeleteStats['activities_soft_deleted'] += count($obsoleteActivities);
+                    $softDeleteStats['endpoints_with_obsolete_activities']++;
+                }
+                
+                $softDeleteStats['activities_preserved'] += count($currentActivityIds);
+                
+            } catch (\Exception $e) {
+                $this->error("Failed to process soft delete for endpoint {$endpoint->description}: {$e->getMessage()}");
+                Log::error("[ImportActivities] Endpoint soft delete failed", [
+                    'endpoint_id' => $endpointId,
+                    'endpoint_description' => $endpoint->description,
+                    'exception' => $e->getMessage()
+                ]);
+            }
+            
+            $softDeleteStats['endpoints_processed']++;
+        }
+
+        $this->info("Soft delete completed. Marked {$softDeleteStats['activities_soft_deleted']} activities as deleted across {$softDeleteStats['endpoints_with_obsolete_activities']} endpoints.");
+        Log::info("[ImportActivities] Soft delete completed", $softDeleteStats);
+    }
+
+    /**
+     * Find activities that exist in database but are no longer present in API response
+     * Returns only activities that are NOT already soft-deleted
+     */
+    private function findObsoleteActivities(int $endpointId, array $currentActivityIds): array
+    {
+        // Get all non-deleted activities for this endpoint
+        $existingActivities = Activity::where('api_endpoint_id', $endpointId)
+            ->whereNull('deleted_at')
+            ->pluck('id')
+            ->toArray();
+
+        // Find activities that exist in DB but not in current API response
+        $obsoleteIds = array_diff($existingActivities, $currentActivityIds);
+        
+        Log::debug("[ImportActivities] Found obsolete activities", [
+            'endpoint_id' => $endpointId,
+            'existing_activities_count' => count($existingActivities),
+            'current_api_activities_count' => count($currentActivityIds),
+            'obsolete_activities_count' => count($obsoleteIds),
+            'obsolete_activity_ids' => $obsoleteIds
+        ]);
+
+        return $obsoleteIds;
+    }
+
+    /**
+     * Perform soft delete on obsolete activities
+     */
+    private function performSoftDelete(array $obsoleteIds, ApiEndpoint $endpoint): void
+    {
+        if (empty($obsoleteIds)) {
+            return;
+        }
+
+        $count = count($obsoleteIds);
+        
+        Log::info("[ImportActivities] Soft deleting obsolete activities", [
+            'endpoint_id' => $endpoint->id,
+            'endpoint_description' => $endpoint->description,
+            'count' => $count,
+            'activity_ids' => $obsoleteIds
+        ]);
+
+        // Soft delete the obsolete activities
+        $deletedCount = Activity::whereIn('id', $obsoleteIds)->delete();
+        
+        $this->info("Soft deleted {$deletedCount} obsolete activities from endpoint: {$endpoint->description}");
+        
+        // Log completion with verification
+        if ($deletedCount !== $count) {
+            Log::warning("[ImportActivities] Soft delete count mismatch", [
+                'endpoint_id' => $endpoint->id,
+                'expected_count' => $count,
+                'actual_deleted_count' => $deletedCount
+            ]);
+        }
     }
 } 

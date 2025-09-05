@@ -230,4 +230,64 @@ Route::get('/run-importer-a9b8c7d6e5f4g3h2j1k0', function () {
 
 This command tells the server to visit your secret URL periodically, which in turn runs the import command. The `> /dev/null 2>&1` part prevents your host from emailing you the output of the command every time it runs.
 
-Your application is now deployed and will automatically update its data without you ever needing to SSH into the server. 
+Your application is now deployed and will automatically update its data without you ever needing to SSH into the server.
+
+---
+
+## Manual Cache Management (Without Terminal Access)
+
+When you don't have SSH access, you can manually clear Laravel's cache by deleting specific files and directories through your hosting control panel's File Manager.
+
+### A. Clear Application Cache
+
+1. **Navigate to the Storage Directory**
+   - In your File Manager, go to `storage/framework/cache/data/`
+   - **Delete all files** in this directory (but keep the directory itself)
+   - These are the cached application data files
+
+2. **Clear Configuration Cache**
+   - Go to `bootstrap/cache/`
+   - **Delete the file** `config.php` if it exists
+   - This file contains cached configuration settings
+
+3. **Clear Route Cache**
+   - In the same `bootstrap/cache/` directory
+   - **Delete the file** `routes-v7.php` (or similar route cache files) if they exist
+   - This file contains cached route definitions
+
+4. **Clear View Cache**
+   - Go to `storage/framework/views/`
+   - **Delete all files** in this directory (but keep the directory itself)
+   - These are the compiled Blade template files
+
+### B. Clear Session Data (Optional)
+
+If you need to clear all user sessions:
+
+1. Go to `storage/framework/sessions/`
+2. **Delete all files** in this directory (but keep the directory itself)
+3. This will log out all users and clear session data
+
+### C. Clear Log Files (Optional)
+
+To clean up log files that might be taking up space:
+
+1. Go to `storage/logs/`
+2. **Delete old log files** (like `laravel-2024-01-15.log`)
+3. **Keep the current log file** (`laravel.log`) if you want to preserve recent logs
+
+### D. Important Notes
+
+- **Always keep the directories themselves** - only delete the files inside them
+- **Make a backup** before clearing cache if you're unsure
+- **Cache will be automatically regenerated** the next time someone visits your website
+- **After clearing cache**, your website might be slightly slower for the first few requests as Laravel rebuilds the cache
+
+### E. When to Clear Cache
+
+You should manually clear cache when:
+- You've updated your `.env` file
+- You've made changes to configuration files
+- You've updated route definitions
+- You've modified Blade templates
+- You're experiencing unexpected behavior that might be cache-related 
