@@ -2,13 +2,16 @@
 <html lang="en" data-bs-theme="auto">
   <head>
     <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-455DX8QQGV"></script>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-455DX8QQGV" onerror="console.warn('Google Analytics failed to load')"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
 
-      gtag('config', 'G-455DX8QQGV');
+      gtag('config', 'G-455DX8QQGV', {
+        // Configurazione per ridurre errori
+        send_page_view: true
+      });
     </script>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">

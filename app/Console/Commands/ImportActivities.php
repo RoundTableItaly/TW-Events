@@ -31,6 +31,9 @@ class ImportActivities extends Command
      */
     public function handle(): void
     {
+        // Set execution time limit for long-running import process
+        set_time_limit(config('console.max_execution_time', 300));
+        
         $this->info("Starting activity import process...");
         Log::info("[ImportActivities] Starting activity import process...");
 
@@ -589,9 +592,7 @@ class ImportActivities extends Command
             }
             // Pulizia HTML da description
             if (!empty($activity['description'])) {
-                // Rimuove tag HTML indesiderati, lasciando solo quelli base (es: <p>, <ul>, <li>, <b>, <i>, <strong>, <em>, <a>, <br>)
-                $allowed_tags = '<p><ul><ol><li><b><i><strong><em><a><br>';
-                $activity['description'] = strip_tags($activity['description'], $allowed_tags);
+                $activity['description'] = $this->sanitizeHtmlContent($activity['description']);
             }
         }
         unset($activity); // buona pratica per riferimenti
@@ -725,5 +726,137 @@ class ImportActivities extends Command
                 'actual_deleted_count' => $deletedCount
             ]);
         }
+    }
+
+    /**
+     * Sanitize HTML content by removing dangerous tags and attributes
+     */
+    private function sanitizeHtmlContent(string $html): string
+    {
+        // Define allowed tags and their allowed attributes
+        $allowedTags = [
+            'p' => [],
+            'br' => [],
+            'b' => [],
+            'i' => [],
+            'strong' => [],
+            'em' => [],
+            'ul' => [],
+            'ol' => [],
+            'li' => [],
+            'a' => ['href']
+        ];
+
+        // Dangerous attributes to remove globally
+        $dangerousAttributes = ['style', 'on*']; // 'on*' for any event handlers
+
+        // First, strip all tags except allowed ones
+        $allowedTagsString = '<' . implode('><', array_keys($allowedTags)) . '>';
+        $html = strip_tags($html, $allowedTagsString);
+
+        try {
+            // Load HTML with DOMDocument
+            $dom = new \DOMDocument();
+            // Suppress warnings for malformed HTML
+            libxml_use_internal_errors(true);
+            $dom->loadHTML('<?xml encoding="utf-8" ?>' . $html, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+            libxml_clear_errors();
+
+            $xpath = new \DOMXPath($dom);
+
+            // Remove dangerous attributes globally
+            foreach ($dangerousAttributes as $attrPattern) {
+                $query = "//@{$attrPattern}";
+                $attributes = $xpath->query($query);
+                foreach ($attributes as $attr) {
+                    $attr->parentNode->removeAttribute($attr->nodeName);
+                }
+            }
+
+            // Process each allowed tag
+            foreach ($allowedTags as $tag => $allowedAttributes) {
+                $elements = $xpath->query("//{$tag}");
+                
+                foreach ($elements as $element) {
+                    // Save allowed attributes
+                    $savedAttributes = [];
+                    foreach ($allowedAttributes as $attr) {
+                        if ($element->hasAttribute($attr)) {
+                            $savedAttributes[$attr] = $element->getAttribute($attr);
+                        }
+                    }
+                    
+                    // Remove all attributes
+                    while ($element->attributes->length) {
+                        $element->removeAttribute($element->attributes->item(0)->nodeName);
+                    }
+                    
+                    // Re-add sanitized attributes
+                    foreach ($savedAttributes as $attr => $value) {
+                        $sanitizedValue = htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+                        if ($attr === 'href' && $this->isValidUrl($value)) {
+                            $element->setAttribute($attr, $sanitizedValue);
+                            $element->setAttribute('target', '_blank');
+                            $element->setAttribute('rel', 'noopener noreferrer');
+                        } else {
+                            $element->setAttribute($attr, $sanitizedValue);
+                        }
+                    }
+                }
+            }
+
+            // Escape text nodes to prevent XSS
+            $this->escapeTextNodes($dom);
+
+            // Get cleaned HTML
+            $cleanedHtml = $dom->saveHTML($dom->documentElement);
+            
+            // Remove XML declaration and extra tags
+            $cleanedHtml = preg_replace('/^<html><body>/', '', $cleanedHtml);
+            $cleanedHtml = preg_replace('/<\/body><\/html>$/', '', $cleanedHtml);
+            $cleanedHtml = preg_replace('/^<\?xml[^>]*\?>/', '', $cleanedHtml);
+
+            return trim($cleanedHtml);
+
+        } catch (\Exception $e) {
+            Log::error("[ImportActivities] HTML sanitization failed", ['exception' => $e->getMessage()]);
+            // Fallback: strict strip_tags without attributes
+            return strip_tags($html, $allowedTagsString);
+        }
+    }
+
+    /**
+     * Escape text nodes in DOM to prevent XSS
+     */
+    private function escapeTextNodes(\DOMDocument $dom): void
+    {
+        $xpath = new \DOMXPath($dom);
+        $textNodes = $xpath->query('//text()');
+        
+        foreach ($textNodes as $node) {
+            if (trim($node->nodeValue) !== '') {
+                $node->nodeValue = htmlspecialchars($node->nodeValue, ENT_QUOTES, 'UTF-8');
+            }
+        }
+    }
+
+    /**
+     * Validate if a URL is safe
+     */
+    private function isValidUrl(string $url): bool
+    {
+        // Basic URL validation
+        if (!filter_var($url, FILTER_VALIDATE_URL)) {
+            return false;
+        }
+        
+        // Check for dangerous protocols
+        $parsedUrl = parse_url($url);
+        if (!$parsedUrl || !isset($parsedUrl['scheme'])) {
+            return false;
+        }
+        
+        $allowedSchemes = ['http', 'https', 'mailto'];
+        return in_array(strtolower($parsedUrl['scheme']), $allowedSchemes);
     }
 } 

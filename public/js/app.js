@@ -295,15 +295,23 @@
                 <p class='card-text mb-1'><b>Inizio:</b> ${formatDateIT(activity.start_date)}</p>
                 <p class='card-text mb-1'><b>Fine:</b> ${formatDateIT(activity.end_date)}</p>
                 <div class='card-text mb-2'>${shortDesc}${activity.description && activity.description.length > 200 ? "..." : ""}</div>
-                <button id='read-more-btn' class='btn btn-primary mt-auto' type='button'>Leggi tutto...</button>
+                <button id='read-more-btn-${activity.id}' class='btn btn-primary mt-auto' type='button'>Leggi tutto...</button>
             `;
             card.appendChild(cardBody);
             col.appendChild(card);
             activitiesList.appendChild(col);
 
+            // Force all links in the card description to open in new tabs
+            const cardLinks = card.querySelectorAll('a');
+            cardLinks.forEach(link => {
+                link.setAttribute('target', '_blank');
+                link.setAttribute('rel', 'noopener noreferrer');
+            });
+
             // Modal logic
-            const readMoreBtn = card.querySelector("#read-more-btn");
-            readMoreBtn.addEventListener("click", () => {
+            const readMoreBtn = cardBody.querySelector(`#read-more-btn-${activity.id}`);
+            if (readMoreBtn) {
+                readMoreBtn.addEventListener("click", () => {
                 let modal = document.getElementById("activityModal");
                 if (!modal) {
                     modal = document.createElement("div");
@@ -335,9 +343,29 @@
                     ${activity.url ? `<a href='${activity.url}' class='btn btn-outline-primary mt-3' target='_blank'>Vai all'evento</a>` : ""}
                 </div></div>`;
                 document.getElementById("activityModalBody").innerHTML = modalBody;
+                
+                // Force all links in the modal to open in new tabs
+                const modalLinks = document.querySelectorAll("#activityModalBody a");
+                modalLinks.forEach(link => {
+                    link.setAttribute('target', '_blank');
+                    link.setAttribute('rel', 'noopener noreferrer');
+                });
+                
                 const bsModal = new bootstrap.Modal(modal);
+                
+                // Fix per accessibilità: rimuovi aria-hidden quando il modal è mostrato
+                modal.addEventListener('shown.bs.modal', function() {
+                    modal.removeAttribute('aria-hidden');
+                });
+                
+                // Ripristina aria-hidden quando il modal è nascosto
+                modal.addEventListener('hidden.bs.modal', function() {
+                    modal.setAttribute('aria-hidden', 'true');
+                });
+                
                 bsModal.show();
-            });
+                });
+            }
 
             // Marker mappa
             if (activity.latitude && activity.longitude) {
