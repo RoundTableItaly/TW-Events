@@ -64,7 +64,7 @@ This setup will automatically capture:
 
 ### Frontend Configuration - Complete Monitoring
 
-The Sentry browser SDK is automatically loaded and configured in the main template with **complete visibility**. It will capture:
+The Sentry browser SDK is automatically loaded and configured in the main template with **complete visibility** using the `bundle.tracing.min.js` bundle. It will capture:
 
 #### **Error Tracking**
 - JavaScript errors and exceptions
@@ -117,23 +117,19 @@ To test that Sentry is working correctly:
    ```javascript
    // Test error capture
    window.testSentry();
-   
-   // Test performance monitoring
-   window.testSentryTransaction();
-   
-   // Test user feedback widget
-   window.testSentryReplay();
-   
+
    // Test direct error capture
    Sentry.captureException(new Error('Manual test error'));
-   
-   // Test custom transaction
-   Sentry.startSpan({
-     op: 'test',
-     name: 'Custom Test Transaction'
-   }, () => {
-     console.log('Custom transaction completed');
-   });
+
+   // Test custom transaction (if Sentry is loaded)
+   if (typeof Sentry !== 'undefined' && Sentry.startSpan) {
+     Sentry.startSpan({
+       op: 'test',
+       name: 'Custom Test Transaction'
+     }, () => {
+       console.log('Custom transaction completed');
+     });
+   }
    ```
 
 4. **Check your Sentry dashboard** for the captured events at https://sentry.io

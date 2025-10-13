@@ -13,9 +13,9 @@
         send_page_view: true
       });
     </script>
-    <!-- Sentry Browser SDK - Full Bundle -->
+    <!-- Sentry Browser SDK - Complete Bundle with Performance Monitoring -->
     <script
-      src="https://js-de.sentry-cdn.com/9d014d88d2ceed928d7922c0d011e41a.min.js"
+      src="https://js.sentry-cdn.com/bundle.tracing.min.js"
       crossorigin="anonymous"
     ></script>
     <script>
@@ -28,8 +28,8 @@
         
         // Complete integrations for maximum visibility
         integrations: [
-          Sentry.browserTracingIntegration(),
-          Sentry.replayIntegration({
+          new Sentry.BrowserTracing(),
+          new Sentry.Replay({
             // Capture 10% of all sessions
             sessionSampleRate: 0.1,
             // Capture 100% of sessions with an error
@@ -38,7 +38,7 @@
             maskAllText: false,
             blockAllMedia: false,
           }),
-          Sentry.feedbackIntegration({
+          new Sentry.Feedback({
             // Show feedback widget on errors
             autoInject: true,
           }),

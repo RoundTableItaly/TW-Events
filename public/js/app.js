@@ -142,30 +142,42 @@
 
         // Event listeners per i filtri
         document.getElementById("filter-area").addEventListener("change", () => {
-            Sentry.startSpan(
-                {
-                    op: "ui.interaction",
-                    name: "Filter Area Change",
-                },
-                () => {
-                    applyFilters();
-                    renderActivities(filteredActivities, map);
-                    renderCalendar(filteredActivities);
-                }
-            );
+            if (typeof Sentry !== 'undefined' && Sentry.startSpan) {
+                Sentry.startSpan(
+                    {
+                        op: "ui.interaction",
+                        name: "Filter Area Change",
+                    },
+                    () => {
+                        applyFilters();
+                        renderActivities(filteredActivities, map);
+                        renderCalendar(filteredActivities);
+                    }
+                );
+            } else {
+                applyFilters();
+                renderActivities(filteredActivities, map);
+                renderCalendar(filteredActivities);
+            }
         });
         document.getElementById("filter-description").addEventListener("change", () => {
-            Sentry.startSpan(
-                {
-                    op: "ui.interaction",
-                    name: "Filter Description Change",
-                },
-                () => {
-                    applyFilters();
-                    renderActivities(filteredActivities, map);
-                    renderCalendar(filteredActivities);
-                }
-            );
+            if (typeof Sentry !== 'undefined' && Sentry.startSpan) {
+                Sentry.startSpan(
+                    {
+                        op: "ui.interaction",
+                        name: "Filter Description Change",
+                    },
+                    () => {
+                        applyFilters();
+                        renderActivities(filteredActivities, map);
+                        renderCalendar(filteredActivities);
+                    }
+                );
+            } else {
+                applyFilters();
+                renderActivities(filteredActivities, map);
+                renderCalendar(filteredActivities);
+            }
         });
 
         // Gestione pulsante Mostra/Nascondi eventi passati
@@ -182,25 +194,39 @@
             }
         }
         showPastBtn.addEventListener("click", () => {
-            Sentry.startSpan(
-                {
-                    op: "ui.click",
-                    name: "Show Past Events Toggle",
-                },
-                () => {
-                    showPastEvents = !showPastEvents;
-                    updateShowPastBtn();
-                    applyFilters();
-                    renderActivities(filteredActivities, map);
-                    // Se la mappa è visibile, ricalcola la dimensione
-                    if (collapseMap && collapseMap.classList.contains("show")) {
-                        setTimeout(() => {
-                            map.invalidateSize();
-                        }, 200);
+            if (typeof Sentry !== 'undefined' && Sentry.startSpan) {
+                Sentry.startSpan(
+                    {
+                        op: "ui.click",
+                        name: "Show Past Events Toggle",
+                    },
+                    () => {
+                        showPastEvents = !showPastEvents;
+                        updateShowPastBtn();
+                        applyFilters();
+                        renderActivities(filteredActivities, map);
+                        // Se la mappa è visibile, ricalcola la dimensione
+                        if (collapseMap && collapseMap.classList.contains("show")) {
+                            setTimeout(() => {
+                                map.invalidateSize();
+                            }, 200);
+                        }
+                        renderCalendar(filteredActivities);
                     }
-                    renderCalendar(filteredActivities);
+                );
+            } else {
+                showPastEvents = !showPastEvents;
+                updateShowPastBtn();
+                applyFilters();
+                renderActivities(filteredActivities, map);
+                // Se la mappa è visibile, ricalcola la dimensione
+                if (collapseMap && collapseMap.classList.contains("show")) {
+                    setTimeout(() => {
+                        map.invalidateSize();
+                    }, 200);
                 }
-            );
+                renderCalendar(filteredActivities);
+            }
         });
         updateShowPastBtn();
 
@@ -422,12 +448,14 @@
     }
 
     async function fetchActivities(map) {
-        return Sentry.startSpan(
-            {
-                op: "http.client",
-                name: "GET /api/activities",
-            },
-            async () => {
+        // Check if Sentry is available and has startSpan method
+        if (typeof Sentry !== 'undefined' && Sentry.startSpan) {
+            return Sentry.startSpan(
+                {
+                    op: "http.client",
+                    name: "GET /api/activities",
+                },
+                async () => {
                 const activitiesList = document.getElementById("activities-list");
                 const loadingIndicator = document.getElementById("loading");
                 try {
@@ -458,10 +486,45 @@
                 } catch (error) {
                     loadingIndicator.innerHTML = '<p class="text-center text-danger">Failed to load activities. Please try again later.</p>';
                     console.error("Error fetching activities:", error);
-                    Sentry.captureException(error);
+                    if (typeof Sentry !== 'undefined' && Sentry.captureException) {
+                        Sentry.captureException(error);
+                    }
                 }
+                });
+        } else {
+            // Fallback when Sentry is not available
+            const activitiesList = document.getElementById("activities-list");
+            const loadingIndicator = document.getElementById("loading");
+            try {
+                const response = await fetch("/api/activities");
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const activities = await response.json();
+                allActivities = activities;
+                // Ordina allActivities per data di inizio crescente
+                allActivities.sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
+                filteredActivities = allActivities.filter((a) => {
+                    const now = new Date();
+                    return !a.start_date || new Date(a.start_date) >= now;
+                });
+                populateFilters(activities);
+                // Clear loading indicator
+                loadingIndicator.remove();
+                renderCalendar(allActivities);
+                renderActivities(filteredActivities, map);
+
+                // Abilita il pulsante di condivisione
+                const shareBtn = document.getElementById("share-summary-btn");
+                if (shareBtn) {
+                    shareBtn.disabled = false;
+                }
+
+            } catch (error) {
+                loadingIndicator.innerHTML = '<p class="text-center text-danger">Failed to load activities. Please try again later.</p>';
+                console.error("Error fetching activities:", error);
             }
-        );
+        }
     }
 
     // Funzione per generare il riassunto per WhatsApp
