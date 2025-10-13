@@ -21,16 +21,23 @@
     <script>
       Sentry.init({
         dsn: "{{ env('SENTRY_DSN') }}",
-        integrations: [
-          // send console.log, console.warn, and console.error calls as logs to Sentry
-          Sentry.consoleLoggingIntegration({ levels: ["log", "warn", "error"] }),
-        ],
-        _experiments: {
-          enableLogs: true,
-        },
         tracesSampleRate: 1.0,
         profilesSampleRate: 1.0,
+        // Enable automatic error capture
+        beforeSend(event, hint) {
+          // Log to console for debugging
+          console.log('Sentry event:', event);
+          return event;
+        }
       });
+      
+      // Test Sentry integration
+      console.log('Sentry initialized successfully');
+      
+      // Test function for manual testing
+      window.testSentry = function() {
+        Sentry.captureException(new Error('Test error from button click'));
+      };
     </script>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
