@@ -39,11 +39,21 @@ SENTRY_ENVIRONMENT=production
 
 3. **Create a `.env.example` file** (if it doesn't exist) with placeholder values:
    ```bash
-   # Sentry Configuration
+   # Sentry Configuration - Complete Monitoring
    SENTRY_LARAVEL_DSN=https://YOUR_SENTRY_DSN_HERE
    SENTRY_DSN=https://YOUR_SENTRY_DSN_HERE
+
+   # Performance Monitoring (Full Bundle)
    SENTRY_TRACES_SAMPLE_RATE=1.0
    SENTRY_PROFILES_SAMPLE_RATE=1.0
+
+   # Session Replay
+   SENTRY_REPLAY_SESSION_SAMPLE_RATE=0.1
+   SENTRY_REPLAY_ERROR_SAMPLE_RATE=1.0
+
+   # Release Tracking
+   SENTRY_RELEASE=1.0.0
+   SENTRY_ENVIRONMENT=production
    ```
 
 ### Backend Configuration
@@ -64,7 +74,7 @@ This setup will automatically capture:
 
 ### Frontend Configuration - Complete Monitoring
 
-The Sentry browser SDK is automatically loaded and configured in the main template with **complete visibility** using the project-specific bundle. It will capture:
+The Sentry browser SDK is automatically loaded and configured in the main template with **complete visibility** using the `bundle.tracing.replay.min.js` bundle. It will capture:
 
 #### **Error Tracking**
 - JavaScript errors and exceptions
@@ -118,18 +128,22 @@ To test that Sentry is working correctly:
    // Test error capture
    window.testSentry();
 
+   // Test performance monitoring
+   window.testSentryTransaction();
+
+   // Test user feedback widget
+   window.testSentryReplay();
+
    // Test direct error capture
    Sentry.captureException(new Error('Manual test error'));
 
-   // Test custom transaction (if Sentry is loaded)
-   if (typeof Sentry !== 'undefined' && typeof Sentry.startSpan === 'function') {
-     Sentry.startSpan({
-       op: 'test',
-       name: 'Custom Test Transaction'
-     }, () => {
-       console.log('Custom transaction completed');
-     });
-   }
+   // Test custom transaction
+   Sentry.startSpan({
+     op: 'test',
+     name: 'Custom Test Transaction'
+   }, () => {
+     console.log('Custom transaction completed');
+   });
    ```
 
 4. **Check your Sentry dashboard** for the captured events at https://sentry.io

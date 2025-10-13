@@ -13,33 +13,47 @@
         send_page_view: true
       });
     </script>
-    <!-- Sentry Browser SDK - Project Bundle with Complete Features -->
+    <!-- Sentry Browser SDK - Complete Bundle with Performance Monitoring -->
     <script
-      src="https://js-de.sentry-cdn.com/9d014d88d2ceed928d7922c0d011e41a.min.js"
+      src="https://js.sentry-cdn.com/bundle.tracing.replay.min.js"
       crossorigin="anonymous"
     ></script>
     <script>
       Sentry.init({
         dsn: "{{ env('SENTRY_DSN') }}",
-        
-        // Performance monitoring
+
+        // Complete performance monitoring
         tracesSampleRate: 1.0,
         profilesSampleRate: 1.0,
-        
+
+        // Session replay configuration
+        replaysOnErrorSampleRate: 1.0,
+        replaysSessionSampleRate: 0.1,
+
+        // Integrations for complete monitoring
+        integrations: [
+          new Sentry.BrowserTracing(),
+          new Sentry.Replay({
+            // Capture console logs, network requests, and DOM events
+            maskAllText: false,
+            blockAllMedia: false,
+          }),
+        ],
+
         // Environment and release tracking
         environment: "{{ env('APP_ENV', 'production') }}",
         release: "{{ env('SENTRY_RELEASE', '1.0.0') }}",
-        
+
         // Enhanced error capture
         beforeSend(event, hint) {
           // Log to console for debugging
           console.log('Sentry event:', event);
           return event;
         },
-        
+
         // Capture unhandled promise rejections
         captureUnhandledRejections: true,
-        
+
         // Enhanced breadcrumbs
         beforeBreadcrumb(breadcrumb, hint) {
           // Capture all breadcrumbs for complete visibility
@@ -54,7 +68,7 @@
       window.testSentry = function() {
         Sentry.captureException(new Error('Test error from button click'));
       };
-      
+
       window.testSentryTransaction = function() {
         Sentry.startSpan({
           op: 'test',
@@ -63,7 +77,7 @@
           console.log('Test transaction completed');
         });
       };
-      
+
       window.testSentryReplay = function() {
         Sentry.showReportDialog();
       };

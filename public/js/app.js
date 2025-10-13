@@ -142,42 +142,30 @@
 
         // Event listeners per i filtri
         document.getElementById("filter-area").addEventListener("change", () => {
-            if (typeof Sentry !== 'undefined' && typeof Sentry.startSpan === 'function') {
-                Sentry.startSpan(
-                    {
-                        op: "ui.interaction",
-                        name: "Filter Area Change",
-                    },
-                    () => {
-                        applyFilters();
-                        renderActivities(filteredActivities, map);
-                        renderCalendar(filteredActivities);
-                    }
-                );
-            } else {
-                applyFilters();
-                renderActivities(filteredActivities, map);
-                renderCalendar(filteredActivities);
-            }
+            Sentry.startSpan(
+                {
+                    op: "ui.interaction",
+                    name: "Filter Area Change",
+                },
+                () => {
+                    applyFilters();
+                    renderActivities(filteredActivities, map);
+                    renderCalendar(filteredActivities);
+                }
+            );
         });
         document.getElementById("filter-description").addEventListener("change", () => {
-            if (typeof Sentry !== 'undefined' && typeof Sentry.startSpan === 'function') {
-                Sentry.startSpan(
-                    {
-                        op: "ui.interaction",
-                        name: "Filter Description Change",
-                    },
-                    () => {
-                        applyFilters();
-                        renderActivities(filteredActivities, map);
-                        renderCalendar(filteredActivities);
-                    }
-                );
-            } else {
-                applyFilters();
-                renderActivities(filteredActivities, map);
-                renderCalendar(filteredActivities);
-            }
+            Sentry.startSpan(
+                {
+                    op: "ui.interaction",
+                    name: "Filter Description Change",
+                },
+                () => {
+                    applyFilters();
+                    renderActivities(filteredActivities, map);
+                    renderCalendar(filteredActivities);
+                }
+            );
         });
 
         // Gestione pulsante Mostra/Nascondi eventi passati
@@ -194,39 +182,25 @@
             }
         }
         showPastBtn.addEventListener("click", () => {
-            if (typeof Sentry !== 'undefined' && typeof Sentry.startSpan === 'function') {
-                Sentry.startSpan(
-                    {
-                        op: "ui.click",
-                        name: "Show Past Events Toggle",
-                    },
-                    () => {
-                        showPastEvents = !showPastEvents;
-                        updateShowPastBtn();
-                        applyFilters();
-                        renderActivities(filteredActivities, map);
-                        // Se la mappa è visibile, ricalcola la dimensione
-                        if (collapseMap && collapseMap.classList.contains("show")) {
-                            setTimeout(() => {
-                                map.invalidateSize();
-                            }, 200);
-                        }
-                        renderCalendar(filteredActivities);
+            Sentry.startSpan(
+                {
+                    op: "ui.click",
+                    name: "Show Past Events Toggle",
+                },
+                () => {
+                    showPastEvents = !showPastEvents;
+                    updateShowPastBtn();
+                    applyFilters();
+                    renderActivities(filteredActivities, map);
+                    // Se la mappa è visibile, ricalcola la dimensione
+                    if (collapseMap && collapseMap.classList.contains("show")) {
+                        setTimeout(() => {
+                            map.invalidateSize();
+                        }, 200);
                     }
-                );
-            } else {
-                showPastEvents = !showPastEvents;
-                updateShowPastBtn();
-                applyFilters();
-                renderActivities(filteredActivities, map);
-                // Se la mappa è visibile, ricalcola la dimensione
-                if (collapseMap && collapseMap.classList.contains("show")) {
-                    setTimeout(() => {
-                        map.invalidateSize();
-                    }, 200);
+                    renderCalendar(filteredActivities);
                 }
-                renderCalendar(filteredActivities);
-            }
+            );
         });
         updateShowPastBtn();
 
@@ -448,16 +422,15 @@
     }
 
     async function fetchActivities(map) {
-        // Check if Sentry is available and has startSpan method
-        if (typeof Sentry !== 'undefined' && typeof Sentry.startSpan === 'function') {
-            return Sentry.startSpan(
-                {
-                    op: "http.client",
-                    name: "GET /api/activities",
-                },
-                async () => {
+        return Sentry.startSpan(
+            {
+                op: "http.client",
+                name: "GET /api/activities",
+            },
+            async () => {
                 const activitiesList = document.getElementById("activities-list");
                 const loadingIndicator = document.getElementById("loading");
+
                 try {
                     const response = await fetch("/api/activities");
                     if (!response.ok) {
@@ -476,7 +449,7 @@
                     loadingIndicator.remove();
                     renderCalendar(allActivities);
                     renderActivities(filteredActivities, map);
-                    
+
                     // Abilita il pulsante di condivisione
                     const shareBtn = document.getElementById("share-summary-btn");
                     if (shareBtn) {
@@ -486,45 +459,10 @@
                 } catch (error) {
                     loadingIndicator.innerHTML = '<p class="text-center text-danger">Failed to load activities. Please try again later.</p>';
                     console.error("Error fetching activities:", error);
-                    if (typeof Sentry !== 'undefined' && typeof Sentry.captureException === 'function') {
-                        Sentry.captureException(error);
-                    }
+                    Sentry.captureException(error);
                 }
-                });
-        } else {
-            // Fallback when Sentry is not available
-            const activitiesList = document.getElementById("activities-list");
-            const loadingIndicator = document.getElementById("loading");
-            try {
-                const response = await fetch("/api/activities");
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                const activities = await response.json();
-                allActivities = activities;
-                // Ordina allActivities per data di inizio crescente
-                allActivities.sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
-                filteredActivities = allActivities.filter((a) => {
-                    const now = new Date();
-                    return !a.start_date || new Date(a.start_date) >= now;
-                });
-                populateFilters(activities);
-                // Clear loading indicator
-                loadingIndicator.remove();
-                renderCalendar(allActivities);
-                renderActivities(filteredActivities, map);
-
-                // Abilita il pulsante di condivisione
-                const shareBtn = document.getElementById("share-summary-btn");
-                if (shareBtn) {
-                    shareBtn.disabled = false;
-                }
-
-            } catch (error) {
-                loadingIndicator.innerHTML = '<p class="text-center text-danger">Failed to load activities. Please try again later.</p>';
-                console.error("Error fetching activities:", error);
             }
-        }
+        );
     }
 
     // Funzione per generare il riassunto per WhatsApp
