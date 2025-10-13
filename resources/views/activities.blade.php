@@ -18,7 +18,7 @@
     <script>
       Sentry.init({
         dsn: "{{ env('SENTRY_FRONTEND_DSN') }}",
-        release: "TW-Events@{{ env('APP_VERSION', '1.0.0') }}",
+        release: "{{ 'TW-Events@' . env('SENTRY_APP_VERSION', '1.0.0') }}",
         integrations: [
           Sentry.browserTracingIntegration(),
           Sentry.replayIntegration({
