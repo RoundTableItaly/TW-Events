@@ -19,7 +19,7 @@ return [
         'driver' => 'file',
     ],
     'providers' => ServiceProvider::defaultProviders()->merge([
-        // App\Providers\AppServiceProvider::class,
+        App\Providers\AppServiceProvider::class,
     ])->toArray(),
     'aliases' => Facade::defaultAliases()->merge([
         // 'Example' => App\Facades\Example::class,

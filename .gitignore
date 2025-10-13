@@ -15,10 +15,13 @@
 !/storage/framework/cache/data/.gitkeep
 !/storage/framework/sessions/.gitkeep
 !/storage/framework/views/.gitkeep
-/storage/logs/
-/bootstrap/cache/
+/storage/logs/*
+/bootstrap/cache/*
+!/bootstrap/cache/.gitkeep
 /storage/*.key
 /public/storage
+/public/storage/*
+!/public/storage/.gitkeep
 
 # Compiled assets
 /public/build
@@ -56,3 +59,4 @@ Thumbs.db
 # User-specific workspace settings
 rt-it-activities.code-workspace 
 *.sql
+*.zip
