@@ -13,36 +13,18 @@
         send_page_view: true
       });
     </script>
-    <!-- Sentry Browser SDK - Complete Bundle with Performance Monitoring -->
+    <!-- Sentry Browser SDK - Project Bundle with Complete Features -->
     <script
-      src="https://js.sentry-cdn.com/bundle.tracing.min.js"
+      src="https://js-de.sentry-cdn.com/9d014d88d2ceed928d7922c0d011e41a.min.js"
       crossorigin="anonymous"
     ></script>
     <script>
       Sentry.init({
         dsn: "{{ env('SENTRY_DSN') }}",
         
-        // Complete performance monitoring
+        // Performance monitoring
         tracesSampleRate: 1.0,
         profilesSampleRate: 1.0,
-        
-        // Complete integrations for maximum visibility
-        integrations: [
-          new Sentry.BrowserTracing(),
-          new Sentry.Replay({
-            // Capture 10% of all sessions
-            sessionSampleRate: 0.1,
-            // Capture 100% of sessions with an error
-            errorSampleRate: 1.0,
-            // Capture console logs, network requests, and DOM events
-            maskAllText: false,
-            blockAllMedia: false,
-          }),
-          new Sentry.Feedback({
-            // Show feedback widget on errors
-            autoInject: true,
-          }),
-        ],
         
         // Environment and release tracking
         environment: "{{ env('APP_ENV', 'production') }}",

@@ -142,7 +142,7 @@
 
         // Event listeners per i filtri
         document.getElementById("filter-area").addEventListener("change", () => {
-            if (typeof Sentry !== 'undefined' && Sentry.startSpan) {
+            if (typeof Sentry !== 'undefined' && typeof Sentry.startSpan === 'function') {
                 Sentry.startSpan(
                     {
                         op: "ui.interaction",
@@ -161,7 +161,7 @@
             }
         });
         document.getElementById("filter-description").addEventListener("change", () => {
-            if (typeof Sentry !== 'undefined' && Sentry.startSpan) {
+            if (typeof Sentry !== 'undefined' && typeof Sentry.startSpan === 'function') {
                 Sentry.startSpan(
                     {
                         op: "ui.interaction",
@@ -194,7 +194,7 @@
             }
         }
         showPastBtn.addEventListener("click", () => {
-            if (typeof Sentry !== 'undefined' && Sentry.startSpan) {
+            if (typeof Sentry !== 'undefined' && typeof Sentry.startSpan === 'function') {
                 Sentry.startSpan(
                     {
                         op: "ui.click",
@@ -449,7 +449,7 @@
 
     async function fetchActivities(map) {
         // Check if Sentry is available and has startSpan method
-        if (typeof Sentry !== 'undefined' && Sentry.startSpan) {
+        if (typeof Sentry !== 'undefined' && typeof Sentry.startSpan === 'function') {
             return Sentry.startSpan(
                 {
                     op: "http.client",
@@ -486,7 +486,7 @@
                 } catch (error) {
                     loadingIndicator.innerHTML = '<p class="text-center text-danger">Failed to load activities. Please try again later.</p>';
                     console.error("Error fetching activities:", error);
-                    if (typeof Sentry !== 'undefined' && Sentry.captureException) {
+                    if (typeof Sentry !== 'undefined' && typeof Sentry.captureException === 'function') {
                         Sentry.captureException(error);
                     }
                 }
