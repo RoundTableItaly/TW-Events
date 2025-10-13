@@ -14,10 +14,7 @@
       });
     </script>
     <!-- Sentry Browser SDK - Complete Bundle with Performance Monitoring -->
-    <script
-      src="https://js.sentry-cdn.com/bundle.tracing.replay.min.js"
-      crossorigin="anonymous"
-    ></script>
+    <script src="https://js-de.sentry-cdn.com/9d014d88d2ceed928d7922c0d011e41a.min.js" crossorigin="anonymous"></script>
     <script>
       Sentry.init({
         dsn: "{{ env('SENTRY_DSN') }}",
