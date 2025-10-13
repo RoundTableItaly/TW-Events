@@ -29,8 +29,8 @@
 
         // Integrations for complete monitoring
         integrations: [
-          new Sentry.BrowserTracing(),
-          new Sentry.Replay({
+          Sentry.browserTracingIntegration(),
+          Sentry.replayIntegration({
             // Capture console logs, network requests, and DOM events
             maskAllText: false,
             blockAllMedia: false,
