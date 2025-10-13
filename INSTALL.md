@@ -18,11 +18,21 @@ This application includes Sentry integration for error tracking and performance 
 2. **Add the following environment variables to your `.env` file**:
 
 ```bash
-# Sentry Configuration
+# Sentry Configuration - Complete Monitoring
 SENTRY_LARAVEL_DSN=https://YOUR_SENTRY_DSN_HERE
 SENTRY_DSN=https://YOUR_SENTRY_DSN_HERE
+
+# Performance Monitoring (Full Bundle)
 SENTRY_TRACES_SAMPLE_RATE=1.0
 SENTRY_PROFILES_SAMPLE_RATE=1.0
+
+# Session Replay
+SENTRY_REPLAY_SESSION_SAMPLE_RATE=0.1
+SENTRY_REPLAY_ERROR_SAMPLE_RATE=1.0
+
+# Release Tracking
+SENTRY_RELEASE=1.0.0
+SENTRY_ENVIRONMENT=production
 ```
 
 **Note**: Both `SENTRY_LARAVEL_DSN` and `SENTRY_DSN` are needed for backend and frontend respectively.
@@ -52,14 +62,36 @@ This setup will automatically capture:
 - Cache operations
 - Unhandled exceptions with full stack traces
 
-### Frontend Configuration
+### Frontend Configuration - Complete Monitoring
 
-The Sentry browser SDK is automatically loaded and configured in the main template. It will capture:
+The Sentry browser SDK is automatically loaded and configured in the main template with **complete visibility**. It will capture:
 
+#### **Error Tracking**
 - JavaScript errors and exceptions
+- Unhandled promise rejections
+- Console errors and warnings
+- Network request failures
+
+#### **Performance Monitoring**
+- Page load times and Core Web Vitals
 - User interactions (button clicks, form changes)
 - API calls and network requests
-- Performance metrics and user experience data
+- Database query performance
+- Custom transaction timing
+
+#### **Session Replay**
+- **10% of all user sessions** (configurable)
+- **100% of sessions with errors**
+- Complete user journey recording
+- Console logs, network requests, and DOM events
+- User feedback collection
+
+#### **Advanced Features**
+- **Browser Tracing**: Automatic performance monitoring
+- **Session Replay**: Video-like recordings of user sessions
+- **User Feedback**: Automatic feedback widget on errors
+- **Release Tracking**: Track deployments and versions
+- **Environment Tracking**: Separate dev/staging/production data
 
 ### Testing Sentry Integration
 
@@ -80,10 +112,28 @@ To test that Sentry is working correctly:
    ```
    Visit `/debug-sentry` in your browser to trigger the exception.
 
-3. **Frontend Test**: 
+3. **Frontend Test - Complete Monitoring**:
    Open browser console and run:
    ```javascript
-   Sentry.captureException(new Error('Test error'))
+   // Test error capture
+   window.testSentry();
+   
+   // Test performance monitoring
+   window.testSentryTransaction();
+   
+   // Test user feedback widget
+   window.testSentryReplay();
+   
+   // Test direct error capture
+   Sentry.captureException(new Error('Manual test error'));
+   
+   // Test custom transaction
+   Sentry.startSpan({
+     op: 'test',
+     name: 'Custom Test Transaction'
+   }, () => {
+     console.log('Custom transaction completed');
+   });
    ```
 
 4. **Check your Sentry dashboard** for the captured events at https://sentry.io
@@ -92,9 +142,33 @@ To test that Sentry is working correctly:
 
 ### Production Considerations
 
-- Set `SENTRY_TRACES_SAMPLE_RATE` to a lower value (e.g., 0.1) in production to reduce data volume
+#### **Sampling Rates for Production**
+- **Error Tracking**: Always capture 100% of errors (`errorSampleRate: 1.0`)
+- **Performance Monitoring**: Reduce to 10-20% (`tracesSampleRate: 0.1-0.2`)
+- **Session Replay**: Keep at 10% (`sessionSampleRate: 0.1`)
+- **Profiles**: Reduce to 5% (`profilesSampleRate: 0.05`)
+
+#### **Environment Variables for Production**
+```bash
+# Production-optimized settings
+SENTRY_TRACES_SAMPLE_RATE=0.1
+SENTRY_PROFILES_SAMPLE_RATE=0.05
+SENTRY_REPLAY_SESSION_SAMPLE_RATE=0.1
+SENTRY_REPLAY_ERROR_SAMPLE_RATE=1.0
+SENTRY_ENVIRONMENT=production
+SENTRY_RELEASE=1.0.0
+```
+
+#### **Monitoring and Alerts**
+- Set up alerts for critical errors in Sentry dashboard
 - Monitor your Sentry quota and adjust sampling rates accordingly
-- Consider setting up alerts for critical errors
+- Use release tracking to correlate errors with deployments
+- Set up performance budgets and Core Web Vitals monitoring
+
+#### **Privacy Considerations**
+- Session Replay captures user interactions - ensure compliance with privacy laws
+- Consider masking sensitive data in replay sessions
+- Review and adjust `maskAllText` and `blockAllMedia` settings as needed
 
 ---
 

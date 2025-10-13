@@ -200,7 +200,8 @@
                     }
                     renderCalendar(filteredActivities);
                 }
-        );
+            );
+        });
         updateShowPastBtn();
 
         // Fix per ridisegnare il calendario quando il collapse viene aperto
