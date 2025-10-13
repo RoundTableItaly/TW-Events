@@ -13,21 +13,12 @@
         send_page_view: true
       });
     </script>
-    <!-- Sentry Browser SDK - Complete Bundle with Performance Monitoring -->
+    <!-- Sentry Browser SDK - Loader Script -->
     <script src="https://js-de.sentry-cdn.com/9d014d88d2ceed928d7922c0d011e41a.min.js" crossorigin="anonymous"></script>
     <script>
       Sentry.init({
-        dsn: "{{ env('SENTRY_DSN') }}",
-
-        // Complete performance monitoring
-        tracesSampleRate: 1.0,
-        profilesSampleRate: 1.0,
-
-        // Session replay configuration
-        replaysOnErrorSampleRate: 1.0,
-        replaysSessionSampleRate: 0.1,
-
-        // Integrations for complete monitoring
+        dsn: "https://9d014d88d2ceed928d7922c0d011e41a@o4510181440094208.ingest.de.sentry.io/4510181450448976",
+        release: "TW-Events@1.0.0",
         integrations: [
           Sentry.browserTracingIntegration(),
           Sentry.replayIntegration({
@@ -36,48 +27,11 @@
             blockAllMedia: false,
           }),
         ],
-
-        // Environment and release tracking
-        environment: "{{ env('APP_ENV', 'production') }}",
-        release: "{{ env('SENTRY_RELEASE', '1.0.0') }}",
-
-        // Enhanced error capture
-        beforeSend(event, hint) {
-          // Log to console for debugging
-          console.log('Sentry event:', event);
-          return event;
-        },
-
-        // Capture unhandled promise rejections
-        captureUnhandledRejections: true,
-
-        // Enhanced breadcrumbs
-        beforeBreadcrumb(breadcrumb, hint) {
-          // Capture all breadcrumbs for complete visibility
-          return breadcrumb;
-        },
+        tracesSampleRate: 1.0,
+        replaysSessionSampleRate: 0.1,
+        replaysOnErrorSampleRate: 1.0,
+        tracePropagationTargets: ["localhost", /^https:\/\/events\.roundtable\.it\/api/],
       });
-      
-      // Test Sentry integration
-      console.log('Sentry initialized with complete monitoring');
-      
-      // Test functions for manual testing
-      window.testSentry = function() {
-        Sentry.captureException(new Error('Test error from button click'));
-      };
-
-      window.testSentryTransaction = function() {
-        Sentry.startSpan({
-          op: 'test',
-          name: 'Manual Test Transaction'
-        }, () => {
-          console.log('Test transaction completed');
-        });
-      };
-
-      window.testSentryReplay = function() {
-        Sentry.showReportDialog();
-      };
     </script>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">

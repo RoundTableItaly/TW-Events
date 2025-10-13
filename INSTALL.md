@@ -6,9 +6,17 @@ Deploying a Laravel project without direct command-line (SSH) access is a common
 
 This application includes Sentry integration for error tracking and performance monitoring on both backend (PHP/Laravel) and frontend (JavaScript) levels.
 
-### Environment Variables
+### Frontend DSN Configuration
 
-**⚠️ SECURITY WARNING**: Never commit your actual Sentry DSN to a public repository. Always use environment variables.
+**ℹ️ NOTE**: The frontend (JavaScript) DSN is hardcoded in the application code (`resources/views/activities.blade.php`). This is **safe and standard practice** for client-side applications, as per Sentry's official documentation. The DSN only allows sending events to Sentry, not reading data from it.
+
+If you need to change the frontend DSN or release version:
+- Edit `resources/views/activities.blade.php`
+- Update the `dsn` and `release` values in the `Sentry.init()` call
+
+### Backend Environment Variables
+
+**⚠️ SECURITY WARNING**: The backend DSN should NEVER be hardcoded. Always use environment variables for server-side code.
 
 1. **Get your Sentry DSN**:
    - Log into your Sentry dashboard
@@ -18,38 +26,18 @@ This application includes Sentry integration for error tracking and performance 
 2. **Add the following environment variables to your `.env` file**:
 
 ```bash
-# Sentry Configuration - Complete Monitoring
+# Sentry Configuration - Backend Only
 SENTRY_LARAVEL_DSN=https://YOUR_SENTRY_DSN_HERE
-SENTRY_DSN=https://YOUR_SENTRY_DSN_HERE
-
-# Performance Monitoring (Full Bundle)
-SENTRY_TRACES_SAMPLE_RATE=1.0
-SENTRY_PROFILES_SAMPLE_RATE=1.0
-
-# Session Replay
-SENTRY_REPLAY_SESSION_SAMPLE_RATE=0.1
-SENTRY_REPLAY_ERROR_SAMPLE_RATE=1.0
 
 # Release Tracking
 SENTRY_RELEASE=1.0.0
 SENTRY_ENVIRONMENT=production
 ```
 
-**Note**: Both `SENTRY_LARAVEL_DSN` and `SENTRY_DSN` are needed for backend and frontend respectively.
-
 3. **Create a `.env.example` file** (if it doesn't exist) with placeholder values:
    ```bash
-   # Sentry Configuration - Complete Monitoring
+   # Sentry Configuration - Backend Only
    SENTRY_LARAVEL_DSN=https://YOUR_SENTRY_DSN_HERE
-   SENTRY_DSN=https://YOUR_SENTRY_DSN_HERE
-
-   # Performance Monitoring (Full Bundle)
-   SENTRY_TRACES_SAMPLE_RATE=1.0
-   SENTRY_PROFILES_SAMPLE_RATE=1.0
-
-   # Session Replay
-   SENTRY_REPLAY_SESSION_SAMPLE_RATE=0.1
-   SENTRY_REPLAY_ERROR_SAMPLE_RATE=1.0
 
    # Release Tracking
    SENTRY_RELEASE=1.0.0
@@ -74,7 +62,7 @@ This setup will automatically capture:
 
 ### Frontend Configuration - Complete Monitoring
 
-The Sentry browser SDK is automatically loaded and configured in the main template with **complete visibility** using the `bundle.tracing.replay.min.js` bundle. It will capture:
+The Sentry browser SDK is automatically loaded via the Sentry Loader Script in the main template with **complete visibility**. It will capture:
 
 #### **Error Tracking**
 - JavaScript errors and exceptions
@@ -126,15 +114,6 @@ To test that Sentry is working correctly:
    Open browser console and run:
    ```javascript
    // Test error capture
-   window.testSentry();
-
-   // Test performance monitoring
-   window.testSentryTransaction();
-
-   // Test user feedback widget
-   window.testSentryReplay();
-
-   // Test direct error capture
    Sentry.captureException(new Error('Manual test error'));
 
    // Test custom transaction
