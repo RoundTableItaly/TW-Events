@@ -16,22 +16,26 @@
     <!-- Sentry Browser SDK - Loader Script -->
     <script src="{{ env('SENTRY_FRONTEND_LOADER_URL') }}" crossorigin="anonymous"></script>
     <script>
-      Sentry.init({
-        dsn: "{{ env('SENTRY_FRONTEND_DSN') }}",
-        release: "{{ 'TW-Events@' . env('SENTRY_APP_VERSION', '1.0.0') }}",
-        integrations: [
-          Sentry.browserTracingIntegration(),
-          Sentry.replayIntegration({
-            // Capture console logs, network requests, and DOM events
-            maskAllText: false,
-            blockAllMedia: false,
-          }),
-        ],
-        tracesSampleRate: 1.0,
-        replaysSessionSampleRate: 0.1,
-        replaysOnErrorSampleRate: 1.0,
-        tracePropagationTargets: ["localhost", /^https:\/\/events\.roundtable\.it\/api/],
-      });
+      window.Sentry = {
+        onLoad: function() {
+          Sentry.init({
+            dsn: "{{ env('SENTRY_FRONTEND_DSN') }}",
+            release: "{{ 'TW-Events@' . env('SENTRY_APP_VERSION', '1.0.0') }}",
+            integrations: [
+              Sentry.browserTracingIntegration(),
+              Sentry.replayIntegration({
+                // Capture console logs, network requests, and DOM events
+                maskAllText: false,
+                blockAllMedia: false,
+              }),
+            ],
+            tracesSampleRate: 1.0,
+            replaysSessionSampleRate: 0.1,
+            replaysOnErrorSampleRate: 1.0,
+            tracePropagationTargets: ["localhost", /^https:\/\/events\.roundtable\.it\/api/],
+          });
+        }
+      };
     </script>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
