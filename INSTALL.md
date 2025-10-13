@@ -4,45 +4,73 @@ Deploying a Laravel project without direct command-line (SSH) access is a common
 
 ## Sentry Error Tracking Configuration
 
-This application includes Sentry integration for error tracking and performance monitoring on both backend (PHP/Laravel) and frontend (JavaScript) levels.
+This application uses **two separate Sentry projects** for comprehensive monitoring:
+- **Backend Project**: Monitors PHP/Laravel server-side errors
+- **Frontend Project**: Monitors JavaScript client-side errors and user sessions
 
-### Frontend DSN Configuration
+This separation provides better organization and allows for different configurations and team access for each layer.
 
-**ℹ️ NOTE**: The frontend (JavaScript) DSN is hardcoded in the application code (`resources/views/activities.blade.php`). This is **safe and standard practice** for client-side applications, as per Sentry's official documentation. The DSN only allows sending events to Sentry, not reading data from it.
+### Environment Variables Setup
 
-If you need to change the frontend DSN or release version:
-- Edit `resources/views/activities.blade.php`
-- Update the `dsn` and `release` values in the `Sentry.init()` call
+**All Sentry configuration is managed via environment variables** for security and flexibility.
 
-### Backend Environment Variables
-
-**⚠️ SECURITY WARNING**: The backend DSN should NEVER be hardcoded. Always use environment variables for server-side code.
-
-1. **Get your Sentry DSN**:
+1. **Get your Sentry DSNs and Loader URL**:
+   
+   **For Backend Project**:
    - Log into your Sentry dashboard
-   - Go to Settings → Projects → [Your Project] → Client Keys (DSN)
+   - Go to Settings → Projects → [Your Backend Project] → Client Keys (DSN)
    - Copy the DSN URL
+   
+   **For Frontend Project**:
+   - Go to Settings → Projects → [Your Frontend Project] → Client Keys (DSN)
+   - Copy the DSN URL
+   - Go to Settings → Projects → [Your Frontend Project] → Loader Script
+   - Copy the loader script URL (e.g., `https://js-de.sentry-cdn.com/YOUR_KEY.min.js`)
 
 2. **Add the following environment variables to your `.env` file**:
 
 ```bash
-# Sentry Configuration - Backend Only
-SENTRY_LARAVEL_DSN=https://YOUR_SENTRY_DSN_HERE
+# Sentry Configuration - Separate Backend and Frontend Projects
 
-# Release Tracking
-SENTRY_RELEASE=1.0.0
+# Backend (Laravel/PHP) - Server-side monitoring
+SENTRY_BACKEND_DSN=https://YOUR_BACKEND_DSN_HERE
+
+# Frontend (JavaScript) - Client-side monitoring
+SENTRY_FRONTEND_DSN=https://YOUR_FRONTEND_DSN_HERE
+SENTRY_FRONTEND_LOADER_URL=https://js-de.sentry-cdn.com/YOUR_PROJECT_KEY.min.js
+
+# Application Version for Release Tracking
+APP_VERSION=1.0.0
+
+# Environment (used by both projects)
 SENTRY_ENVIRONMENT=production
 ```
 
-3. **Create a `.env.example` file** (if it doesn't exist) with placeholder values:
-   ```bash
-   # Sentry Configuration - Backend Only
-   SENTRY_LARAVEL_DSN=https://YOUR_SENTRY_DSN_HERE
+**⚠️ SECURITY NOTE**: While frontend DSNs are safe to expose (they only allow sending events), it's still best practice to use environment variables for easy configuration and project management.
 
-   # Release Tracking
-   SENTRY_RELEASE=1.0.0
+3. **Update your `.env.example` file** with the Sentry variables as a template:
+   
+   Add these lines to your `.env.example` file:
+   ```bash
+   # Sentry Configuration - Separate Backend and Frontend Projects
+   
+   # Backend (Laravel/PHP) - Get from: Sentry Dashboard → Backend Project → Client Keys (DSN)
+   SENTRY_BACKEND_DSN=https://YOUR_BACKEND_DSN_HERE
+   
+   # Frontend (JavaScript) - Get from: Sentry Dashboard → Frontend Project → Client Keys (DSN)
+   SENTRY_FRONTEND_DSN=https://YOUR_FRONTEND_DSN_HERE
+   
+   # Frontend Loader Script - Get from: Sentry Dashboard → Frontend Project → Loader Script
+   SENTRY_FRONTEND_LOADER_URL=https://js-de.sentry-cdn.com/YOUR_PROJECT_KEY.min.js
+   
+   # Application Version for Release Tracking (update this with each deployment)
+   APP_VERSION=1.0.0
+   
+   # Environment (used by both backend and frontend Sentry projects)
    SENTRY_ENVIRONMENT=production
    ```
+
+4. **For production deployment**, copy `.env.example` to `.env` and fill in your actual values from the Sentry dashboard.
 
 ### Backend Configuration
 

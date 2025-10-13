@@ -14,11 +14,11 @@
       });
     </script>
     <!-- Sentry Browser SDK - Loader Script -->
-    <script src="https://js-de.sentry-cdn.com/9d014d88d2ceed928d7922c0d011e41a.min.js" crossorigin="anonymous"></script>
+    <script src="{{ env('SENTRY_FRONTEND_LOADER_URL') }}" crossorigin="anonymous"></script>
     <script>
       Sentry.init({
-        dsn: "https://9d014d88d2ceed928d7922c0d011e41a@o4510181440094208.ingest.de.sentry.io/4510181450448976",
-        release: "TW-Events@1.0.0",
+        dsn: "{{ env('SENTRY_FRONTEND_DSN') }}",
+        release: "TW-Events@{{ env('APP_VERSION', '1.0.0') }}",
         integrations: [
           Sentry.browserTracingIntegration(),
           Sentry.replayIntegration({
