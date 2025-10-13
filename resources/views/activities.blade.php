@@ -13,6 +13,25 @@
         send_page_view: true
       });
     </script>
+    <!-- Sentry Browser SDK -->
+    <script
+      src="https://js-de.sentry-cdn.com/9d014d88d2ceed928d7922c0d011e41a.min.js"
+      crossorigin="anonymous"
+    ></script>
+    <script>
+      Sentry.init({
+        dsn: "{{ env('SENTRY_DSN') }}",
+        integrations: [
+          // send console.log, console.warn, and console.error calls as logs to Sentry
+          Sentry.consoleLoggingIntegration({ levels: ["log", "warn", "error"] }),
+        ],
+        _experiments: {
+          enableLogs: true,
+        },
+        tracesSampleRate: 1.0,
+        profilesSampleRate: 1.0,
+      });
+    </script>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Round Table Italia Events</title>

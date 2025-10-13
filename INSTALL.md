@@ -2,6 +2,100 @@
 
 Deploying a Laravel project without direct command-line (SSH) access is a common scenario for shared hosting environments that use control panels like cPanel or Plesk. The core strategy is to perform all command-line operations locally and then upload the complete, production-ready application to the server.
 
+## Sentry Error Tracking Configuration
+
+This application includes Sentry integration for error tracking and performance monitoring on both backend (PHP/Laravel) and frontend (JavaScript) levels.
+
+### Environment Variables
+
+**⚠️ SECURITY WARNING**: Never commit your actual Sentry DSN to a public repository. Always use environment variables.
+
+1. **Get your Sentry DSN**:
+   - Log into your Sentry dashboard
+   - Go to Settings → Projects → [Your Project] → Client Keys (DSN)
+   - Copy the DSN URL
+
+2. **Add the following environment variables to your `.env` file**:
+
+```bash
+# Sentry Configuration
+SENTRY_LARAVEL_DSN=https://YOUR_SENTRY_DSN_HERE
+SENTRY_DSN=https://YOUR_SENTRY_DSN_HERE
+SENTRY_TRACES_SAMPLE_RATE=1.0
+SENTRY_PROFILES_SAMPLE_RATE=1.0
+```
+
+**Note**: Both `SENTRY_LARAVEL_DSN` and `SENTRY_DSN` are needed for backend and frontend respectively.
+
+3. **Create a `.env.example` file** (if it doesn't exist) with placeholder values:
+   ```bash
+   # Sentry Configuration
+   SENTRY_LARAVEL_DSN=https://YOUR_SENTRY_DSN_HERE
+   SENTRY_DSN=https://YOUR_SENTRY_DSN_HERE
+   SENTRY_TRACES_SAMPLE_RATE=1.0
+   SENTRY_PROFILES_SAMPLE_RATE=1.0
+   ```
+
+### Backend Configuration
+
+The Sentry Laravel package is already installed and configured:
+
+1. **Configuration file**: Located at `config/sentry.php`
+2. **Exception handler**: Integrated in `bootstrap/app.php` via `Integration::handles($exceptions)`
+
+This setup will automatically capture:
+
+- All PHP exceptions and errors
+- Database queries and performance metrics
+- HTTP requests and responses
+- Queue jobs and commands
+- Cache operations
+- Unhandled exceptions with full stack traces
+
+### Frontend Configuration
+
+The Sentry browser SDK is automatically loaded and configured in the main template. It will capture:
+
+- JavaScript errors and exceptions
+- User interactions (button clicks, form changes)
+- API calls and network requests
+- Performance metrics and user experience data
+
+### Testing Sentry Integration
+
+To test that Sentry is working correctly:
+
+1. **Backend Test - Using Artisan Command**:
+   ```bash
+   docker-compose -f docker-compose-dev.yml exec app php artisan sentry:test
+   ```
+   This command will send a test exception to Sentry to verify the integration.
+
+2. **Backend Test - Using Test Route** (alternative):
+   Create a test route in `routes/web.php`:
+   ```php
+   Route::get('/debug-sentry', function () {
+       throw new Exception('My first Sentry error!');
+   });
+   ```
+   Visit `/debug-sentry` in your browser to trigger the exception.
+
+3. **Frontend Test**: 
+   Open browser console and run:
+   ```javascript
+   Sentry.captureException(new Error('Test error'))
+   ```
+
+4. **Check your Sentry dashboard** for the captured events at https://sentry.io
+
+**Important**: Make sure your `.env` file contains the correct DSN and is not committed to version control.
+
+### Production Considerations
+
+- Set `SENTRY_TRACES_SAMPLE_RATE` to a lower value (e.g., 0.1) in production to reduce data volume
+- Monitor your Sentry quota and adjust sampling rates accordingly
+- Consider setting up alerts for critical errors
+
 ---
 
 ## The Workflow: Prepare Locally, Upload, and Configure

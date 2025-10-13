@@ -19,6 +19,19 @@ The application is composed of two main parts:
     -   **User Interface**: The UI is built with Bootstrap and displays a list of activities and a Leaflet.js map.
     -   **Data Consumption**: The frontend fetches data from the backend's `/api/activities` endpoint.
 
+## Error Tracking & Monitoring
+
+This application includes comprehensive error tracking and performance monitoring through Sentry integration:
+
+- **Backend Monitoring**: Captures PHP exceptions, database queries, HTTP requests, and performance metrics
+- **Frontend Monitoring**: Tracks JavaScript errors, user interactions, API calls, and user experience data
+- **Real-time Alerts**: Automatic error reporting to Sentry dashboard for immediate issue detection
+- **Performance Insights**: Detailed performance monitoring for both backend and frontend operations
+
+**⚠️ Security Note**: Never commit your actual Sentry DSN to a public repository. Always use environment variables.
+
+See the [INSTALL.md](INSTALL.md) file for detailed Sentry configuration instructions.
+
 ## Requirements
 
 -   PHP >= 8.2
