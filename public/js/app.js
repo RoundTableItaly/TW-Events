@@ -231,10 +231,19 @@
         const area = document.getElementById("filter-area").value;
         const desc = document.getElementById("filter-description").value;
         const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        
         filteredActivities = allActivities.filter((a) => {
-            const isFuture = !a.start_date || new Date(a.start_date) >= now;
-            // Se showPastEvents è true, mostra anche i passati, altrimenti solo futuri
-            const dateFilter = showPastEvents ? true : isFuture;
+            const activityDate = !a.start_date ? null : new Date(a.start_date);
+            const activityDateOnly = activityDate ? new Date(activityDate.getFullYear(), activityDate.getMonth(), activityDate.getDate()) : null;
+            
+            // Include activities from today, yesterday, or future dates
+            const isValidDate = !activityDate || activityDateOnly >= yesterday;
+            
+            // Se showPastEvents è true, mostra anche i passati, altrimenti solo da ieri in poi
+            const dateFilter = showPastEvents ? true : isValidDate;
             return dateFilter && (!area || a.api_endpoint_area === area) && (!desc || a.api_endpoint_description === desc);
         });
         // Ordina per data di inizio crescente
@@ -410,9 +419,17 @@
             allActivities = activities;
             // Ordina allActivities per data di inizio crescente
             allActivities.sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
+            
+            // Apply initial filtering to show today's and yesterday's activities
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+            
             filteredActivities = allActivities.filter((a) => {
-                const now = new Date();
-                return !a.start_date || new Date(a.start_date) >= now;
+                const activityDate = !a.start_date ? null : new Date(a.start_date);
+                const activityDateOnly = activityDate ? new Date(activityDate.getFullYear(), activityDate.getMonth(), activityDate.getDate()) : null;
+                return !activityDate || activityDateOnly >= yesterday;
             });
             populateFilters(activities);
             // Clear loading indicator
