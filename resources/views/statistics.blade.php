@@ -315,15 +315,15 @@
                 </div>
                 <div class="card-body">
                   @if(isset($statistics['day_of_week_distribution']) && $statistics['day_of_week_distribution']->count() > 0)
+                  @php
+                    $mostCommon = $statistics['day_of_week_distribution']->sortByDesc('event_count')->first();
+                  @endphp
+                  @if($mostCommon)
                   <div class="text-center mb-3">
-                    @php
-                      $mostCommon = $statistics['day_of_week_distribution']->first();
-                      $dayNames = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'];
-                      $dayName = $dayNames[$mostCommon->day_of_week % 7] ?? $mostCommon->day_name;
-                    @endphp
-                    <h3 class="mb-0">{{ $dayName }}</h3>
+                    <h3 class="mb-0">{{ $mostCommon->day_name }}</h3>
                     <p class="text-muted mb-0">{{ $mostCommon->event_count }} eventi</p>
                   </div>
+                  @endif
                   @endif
                   <div class="chart-container" style="position: relative; height: 200px;">
                     <canvas id="dayOfWeekChart"></canvas>
@@ -387,7 +387,7 @@
                   </h5>
                 </div>
                 <div class="card-body">
-                  <p class="text-muted small mb-3">
+                  <p class="text-secondary small mb-3">
                     <i class="bi bi-info-circle"></i> Questo grafico mostra quanti giorni prima della data di inizio dell'evento è stato pubblicato (creato) l'evento.
                   </p>
                   <div class="mb-3">
@@ -395,13 +395,13 @@
                       Giorni massimi: <span id="maxDaysValue">180</span>
                     </label>
                     <input type="range" class="form-range" id="maxDaysFilter" min="30" max="365" value="180" step="5">
-                    <small class="text-muted d-block mt-1">Filtra eventi pubblicati oltre questo numero di giorni prima della data di inizio</small>
+                    <small class="text-secondary d-block mt-1">Filtra eventi pubblicati oltre questo numero di giorni prima della data di inizio</small>
                   </div>
                   <div id="bellCurveStats" class="text-center mb-3" style="display: none;">
                     <h6 class="mb-1">Media: <span id="meanDaysValue">-</span> giorni prima della data di inizio</h6>
-                    <small class="text-muted">Deviazione standard: <span id="stdDevValue">-</span> giorni</small>
+                    <small class="text-secondary">Deviazione standard: <span id="stdDevValue">-</span> giorni</small>
                     <br>
-                    <small class="text-muted">Eventi esclusi: <span id="excludedEventsCount">0</span></small>
+                    <small class="text-secondary">Eventi esclusi: <span id="excludedEventsCount">0</span></small>
                   </div>
                   <div class="chart-container" style="position: relative; height: 300px;">
                     <canvas id="bellCurveChart"></canvas>
@@ -439,7 +439,7 @@
                   </h5>
                 </div>
                 <div class="card-body">
-                  <p class="text-muted small mb-3">
+                  <p class="text-secondary small mb-3">
                     <i class="bi bi-info-circle"></i> Classifica delle tavole che pubblicano gli eventi con maggiore anticipo (media giorni tra pubblicazione e data evento). Mostra solo tavole con almeno 5 eventi.
                   </p>
                   <div class="table-responsive">
@@ -568,7 +568,7 @@
                   </h5>
                 </div>
                 <div class="card-body">
-                  <p class="text-muted small mb-3">
+                  <p class="text-secondary small mb-3">
                     <i class="bi bi-info-circle"></i> Tavole che pubblicano pochi o nessun evento (solo tavole locali, escluse RT Italia e le zone).
                   </p>
                   <div class="table-responsive">
@@ -585,16 +585,16 @@
                             <td>
                               <strong>{{ $table['table_name'] }}</strong>
                               @if($table['area'])
-                                <br><small class="text-muted"><i class="bi bi-geo-alt"></i> {{ $table['area'] }}</small>
+                                <br><small class="text-secondary"><i class="bi bi-geo-alt"></i> {{ $table['area'] }}</small>
                               @endif
                             </td>
                             <td class="text-end">
                               @if($table['event_count'] == 0)
                                 <span class="badge bg-danger rounded-pill">0 eventi</span>
                               @elseif($table['event_count'] <= 2)
-                                <span class="badge bg-warning text-dark rounded-pill">{{ $table['event_count'] }} evento{{ $table['event_count'] !== 1 ? 'i' : '' }}</span>
+                                <span class="badge bg-warning text-dark rounded-pill">{{ $table['event_count'] }} eventi</span>
                               @else
-                                <span class="badge bg-info rounded-pill">{{ $table['event_count'] }} evento{{ $table['event_count'] !== 1 ? 'i' : '' }}</span>
+                                <span class="badge bg-info rounded-pill">{{ $table['event_count'] }} eventi</span>
                               @endif
                             </td>
                           </tr>
@@ -624,7 +624,7 @@
                   </h5>
                 </div>
                 <div class="card-body">
-                  <p class="text-muted small mb-3">
+                  <p class="text-secondary small mb-3">
                     <i class="bi bi-info-circle"></i> Tavole che pubblicano pochi o nessun evento, suddivise per zona.
                   </p>
                   @forelse($statistics['tables_without_activities_by_zone'] as $zoneData)
@@ -652,9 +652,9 @@
                                   @if($table['event_count'] == 0)
                                     <span class="badge bg-danger rounded-pill">0 eventi</span>
                                   @elseif($table['event_count'] <= 2)
-                                    <span class="badge bg-warning text-dark rounded-pill">{{ $table['event_count'] }} evento{{ $table['event_count'] !== 1 ? 'i' : '' }}</span>
+                                    <span class="badge bg-warning text-dark rounded-pill">{{ $table['event_count'] }} eventi</span>
                                   @else
-                                    <span class="badge bg-info rounded-pill">{{ $table['event_count'] }} evento{{ $table['event_count'] !== 1 ? 'i' : '' }}</span>
+                                    <span class="badge bg-info rounded-pill">{{ $table['event_count'] }} eventi</span>
                                   @endif
                                 </td>
                               </tr>

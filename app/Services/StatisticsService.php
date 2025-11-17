@@ -176,7 +176,7 @@ class StatisticsService
      */
     private function getDayOfWeekDistribution(Carbon $start, Carbon $end): Collection
     {
-        return Activity::select(
+        $rawDistribution = Activity::select(
                 DB::raw('DAYOFWEEK(start_date) as day_of_week'),
                 DB::raw('DAYNAME(start_date) as day_name'),
                 DB::raw('count(*) as event_count')
@@ -186,8 +186,29 @@ class StatisticsService
             ->inSocialYear($start, $end)
             ->singleDay()
             ->groupBy('day_of_week', 'day_name')
-            ->orderBy('event_count', 'desc')
-            ->get();
+            ->get()
+            ->keyBy('day_of_week');
+
+        // Order starting from Monday (2) through Sunday (1)
+        $daysOrder = [
+            2 => 'Lunedì',
+            3 => 'Martedì',
+            4 => 'Mercoledì',
+            5 => 'Giovedì',
+            6 => 'Venerdì',
+            7 => 'Sabato',
+            1 => 'Domenica',
+        ];
+
+        return collect($daysOrder)->map(function ($dayName, $dayOfWeek) use ($rawDistribution) {
+            $entry = $rawDistribution->get($dayOfWeek);
+
+            return (object) [
+                'day_of_week' => $dayOfWeek,
+                'day_name' => $dayName,
+                'event_count' => $entry->event_count ?? 0,
+            ];
+        })->values();
     }
 
     /**

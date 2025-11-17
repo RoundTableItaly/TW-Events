@@ -485,23 +485,22 @@ class StatisticsDashboard {
         
         const ctx = canvas.getContext('2d');
         
-        const dayNames = ['Dom', 'Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab'];
+        // Day names mapping (Monday-first order)
+        const dayNamesMap = {
+            2: 'Lun',
+            3: 'Mar',
+            4: 'Mer',
+            5: 'Gio',
+            6: 'Ven',
+            7: 'Sab',
+            1: 'Dom',
+        };
         
-        // Sort data by day of week (1=Sunday, 7=Saturday)
-        const sortedData = [...data].sort((a, b) => {
-            // MySQL DAYOFWEEK returns 1=Sunday, 7=Saturday
-            // Adjust to 0=Sunday, 6=Saturday for array indexing
-            const dayA = (a.day_of_week % 7);
-            const dayB = (b.day_of_week % 7);
-            return dayA - dayB;
+        const labels = data.map(item => {
+            return dayNamesMap[item.day_of_week] || item.day_name;
         });
         
-        const labels = sortedData.map(item => {
-            const dayIndex = (item.day_of_week % 7);
-            return dayNames[dayIndex] || item.day_name;
-        });
-        
-        const values = sortedData.map(item => item.event_count);
+        const values = data.map(item => item.event_count ?? 0);
         
         if (this.charts.dayOfWeek) {
             this.charts.dayOfWeek.destroy();
