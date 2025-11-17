@@ -8,7 +8,7 @@
 return [
 
     // @see https://docs.sentry.io/product/sentry-basics/dsn-explainer/
-    'dsn' => env('SENTRY_BACKEND_DSN'),
+    'dsn' => env('APP_DEBUG') === true ? null : env('SENTRY_BACKEND_DSN'),
 
     // @see https://spotlightjs.com/
     // 'spotlight' => env('SENTRY_SPOTLIGHT', false),

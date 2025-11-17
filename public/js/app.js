@@ -62,12 +62,19 @@
         const activeThemeIcon = document.querySelector("#bd-theme-icon");
         const btnToActive = document.querySelector(`[data-bs-theme-value="${theme}"]`);
 
+        if (!btnToActive) {
+            return;
+        }
+
         document.querySelectorAll("[data-bs-theme-value]").forEach((element) => {
             element.classList.remove("active");
         });
 
         btnToActive.classList.add("active");
-        activeThemeIcon.className = btnToActive.querySelector("i").className;
+        
+        if (activeThemeIcon) {
+            activeThemeIcon.className = btnToActive.querySelector("i").className;
+        }
 
         if (focus) {
             themeSwitcher.focus();

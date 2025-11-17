@@ -19,5 +19,6 @@ class ApiEndpoint extends Model
         'token',
         'description',
         'area',
+        'type',
     ];
 } 

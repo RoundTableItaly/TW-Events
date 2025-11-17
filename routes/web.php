@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Artisan;
+use App\Http\Controllers\ActivityController;
 
 /*
 |--------------------------------------------------------------------------
@@ -16,7 +17,9 @@ use Illuminate\Support\Facades\Artisan;
 
 Route::get('/', function () {
     return view('activities');
-});
+})->name('activities.index');
+
+Route::get('/statistics', [ActivityController::class, 'statisticsPage'])->name('statistics.index');
 
 // This route allows a cron job to securely trigger the activity importer.
 // The URL should be kept secret.

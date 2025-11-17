@@ -2,6 +2,7 @@
 <html lang="en" data-bs-theme="auto">
   <head>
     <!-- Google tag (gtag.js) -->
+    @if(env('APP_DEBUG') === false)
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-455DX8QQGV" onerror="console.warn('Google Analytics failed to load')"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
@@ -13,6 +14,8 @@
         send_page_view: true
       });
     </script>
+    @endif
+    @if(env('APP_DEBUG') === false)
     <!-- Sentry Browser SDK - Loader Script -->
     <script src="{{ env('SENTRY_FRONTEND_LOADER_URL') }}" crossorigin="anonymous"></script>
     <script>
@@ -37,6 +40,7 @@
         }
       };
     </script>
+    @endif
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Round Table Italia Events</title>
@@ -69,6 +73,11 @@
               <li class="nav-item">
                 <a class="nav-link" href="#" data-bs-toggle="collapse" data-bs-target="#collapseCalendar" aria-expanded="false" aria-controls="collapseCalendar">
                   <i class="bi bi-calendar3"></i> Calendario
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="{{ route('statistics.index') }}">
+                  <i class="bi bi-graph-up"></i> Statistiche
                 </a>
               </li>
             </ul>
