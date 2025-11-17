@@ -151,6 +151,9 @@ class StatisticsDashboard {
         
         const ctx = canvas.getContext('2d');
         
+        // Limit to top 10 tables for chart display (to avoid legend overflow)
+        const top10Data = data.slice(0, 10);
+        
         // Destroy existing chart if it exists
         if (this.charts.topTables) {
             this.charts.topTables.destroy();
@@ -159,10 +162,10 @@ class StatisticsDashboard {
         this.charts.topTables = new Chart(ctx, {
             type: 'bar',
             data: {
-                labels: data.map(item => item.table_name || 'Senza nome'),
+                labels: top10Data.map(item => item.table_name || 'Senza nome'),
                 datasets: [{
                     label: 'Eventi',
-                    data: data.map(item => item.event_count),
+                    data: top10Data.map(item => item.event_count),
                     backgroundColor: 'rgba(54, 162, 235, 0.8)',
                     borderColor: 'rgba(54, 162, 235, 1)',
                     borderWidth: 1
