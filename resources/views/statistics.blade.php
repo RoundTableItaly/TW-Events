@@ -322,7 +322,7 @@
                       $dayName = $dayNames[$mostCommon->day_of_week % 7] ?? $mostCommon->day_name;
                     @endphp
                     <h3 class="mb-0">{{ $dayName }}</h3>
-                    <p class="text-muted mb-0">{{ $mostCommon->event_count }} evento{{ $mostCommon->event_count !== 1 ? 'i' : '' }}</p>
+                    <p class="text-muted mb-0">{{ $mostCommon->event_count }} eventi</p>
                   </div>
                   @endif
                   <div class="chart-container" style="position: relative; height: 200px;">
@@ -484,6 +484,80 @@
             </div>
           </div>
 
+          <!-- Tables Row -->
+          <div class="row mb-4">
+            <div class="col-lg-6 mb-3">
+              <div class="card">
+                <div class="card-header">
+                  <h5 class="card-title mb-0">
+                    <i class="bi bi-trophy"></i> Tavole con più Eventi
+                  </h5>
+                </div>
+                <div class="card-body">
+                  <div class="table-responsive">
+                    <table class="table table-hover" id="topTablesTable">
+                      <thead>
+                        <tr>
+                          <th>Tavola</th>
+                          <th class="text-end">Eventi</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @forelse($statistics['top_tables'] as $table)
+                          <tr>
+                            <td>{{ $table->table_name }}</td>
+                            <td class="text-end">
+                              <span class="badge bg-primary rounded-pill">{{ $table->event_count }}</span>
+                            </td>
+                          </tr>
+                        @empty
+                          <tr>
+                            <td colspan="2" class="text-center text-muted">Nessun dato disponibile</td>
+                          </tr>
+                        @endforelse
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-lg-6 mb-3">
+              <div class="card">
+                <div class="card-header">
+                  <h5 class="card-title mb-0">
+                    <i class="bi bi-geo-alt"></i> Eventi per Zona
+                  </h5>
+                </div>
+                <div class="card-body">
+                  <div class="table-responsive">
+                    <table class="table table-hover" id="zonesTable">
+                      <thead>
+                        <tr>
+                          <th>Zona</th>
+                          <th class="text-end">Eventi</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @forelse($statistics['events_by_zone'] as $zone)
+                          <tr>
+                            <td>{{ $zone->zone }}</td>
+                            <td class="text-end">
+                              <span class="badge bg-info rounded-pill">{{ $zone->event_count }}</span>
+                            </td>
+                          </tr>
+                        @empty
+                          <tr>
+                            <td colspan="2" class="text-center text-muted">Nessun dato disponibile</td>
+                          </tr>
+                        @endforelse
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- Tavole senza Attività Row -->
           <div class="row mb-4">
             <div class="col-12 mb-3">
@@ -595,80 +669,6 @@
                       Nessun dato disponibile
                     </div>
                   @endforelse
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Tables Row -->
-          <div class="row mb-4">
-            <div class="col-lg-6 mb-3">
-              <div class="card">
-                <div class="card-header">
-                  <h5 class="card-title mb-0">
-                    <i class="bi bi-trophy"></i> Tavole con più Eventi
-                  </h5>
-                </div>
-                <div class="card-body">
-                  <div class="table-responsive">
-                    <table class="table table-hover" id="topTablesTable">
-                      <thead>
-                        <tr>
-                          <th>Tavola</th>
-                          <th class="text-end">Eventi</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        @forelse($statistics['top_tables'] as $table)
-                          <tr>
-                            <td>{{ $table->table_name }}</td>
-                            <td class="text-end">
-                              <span class="badge bg-primary rounded-pill">{{ $table->event_count }}</span>
-                            </td>
-                          </tr>
-                        @empty
-                          <tr>
-                            <td colspan="2" class="text-center text-muted">Nessun dato disponibile</td>
-                          </tr>
-                        @endforelse
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="col-lg-6 mb-3">
-              <div class="card">
-                <div class="card-header">
-                  <h5 class="card-title mb-0">
-                    <i class="bi bi-geo-alt"></i> Eventi per Zona
-                  </h5>
-                </div>
-                <div class="card-body">
-                  <div class="table-responsive">
-                    <table class="table table-hover" id="zonesTable">
-                      <thead>
-                        <tr>
-                          <th>Zona</th>
-                          <th class="text-end">Eventi</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        @forelse($statistics['events_by_zone'] as $zone)
-                          <tr>
-                            <td>{{ $zone->zone }}</td>
-                            <td class="text-end">
-                              <span class="badge bg-info rounded-pill">{{ $zone->event_count }}</span>
-                            </td>
-                          </tr>
-                        @empty
-                          <tr>
-                            <td colspan="2" class="text-center text-muted">Nessun dato disponibile</td>
-                          </tr>
-                        @endforelse
-                      </tbody>
-                    </table>
-                  </div>
                 </div>
               </div>
             </div>

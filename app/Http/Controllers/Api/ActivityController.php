@@ -29,12 +29,39 @@ class ActivityController extends Controller
     }
 
     /**
-     * Get statistics and KPIs for activities
+     * Calculate the start date of the current social year
+     * The social year starts on the first Saturday of June
      */
+    private function getSocialYearStart($year = null)
+    {
+        if ($year === null) {
+            $year = Carbon::now()->year;
+        }
+        
+        $juneFirst = Carbon::create($year, 6, 1);
+        $dayOfWeek = $juneFirst->dayOfWeek;
+        $daysToAdd = (6 - $dayOfWeek + 7) % 7;
+        
+        return $juneFirst->copy()->addDays($daysToAdd);
+    }
+
     public function statistics()
     {
         $now = Carbon::now();
         $currentMonth = $now->startOfMonth();
+        
+        // Calculate social year dates
+        $currentYear = $now->year;
+        $socialYearStart = $this->getSocialYearStart($currentYear);
+        
+        // If we're before the social year start, the current social year started last year
+        if ($now->lt($socialYearStart)) {
+            $currentSocialYearStart = $this->getSocialYearStart($currentYear - 1);
+            $currentSocialYearEnd = $socialYearStart->copy()->subDay();
+        } else {
+            $currentSocialYearStart = $socialYearStart;
+            $currentSocialYearEnd = $this->getSocialYearStart($currentYear + 1)->copy()->subDay();
+        }
         
         // Base query for active activities
         $baseQuery = Activity::with(['apiEndpoint:id,description,area'])
@@ -49,37 +76,48 @@ class ActivityController extends Controller
             ->orderBy('start_date', 'asc')
             ->first();
 
-        // Top tables by events
+        // Top tables by events - only Tavole, exclude Zone and Nazionale
+        // Filter by current social year
+        // No limit - show all tables (top 10 is shown separately above)
         $topTables = Activity::select('api_endpoints.description as table_name', DB::raw('count(*) as event_count'))
             ->join('api_endpoints', 'activities.api_endpoint_id', '=', 'api_endpoints.id')
             ->whereNull('activities.deleted_at')
+            ->where('api_endpoints.type', 'Tavola') // Only Tavole, exclude Zone and Nazionale
+            ->where('activities.start_date', '>=', $currentSocialYearStart)
+            ->where('activities.start_date', '<=', $currentSocialYearEnd)
             ->groupBy('api_endpoints.id', 'api_endpoints.description')
             ->orderBy('event_count', 'desc')
-            ->limit(10)
             ->get();
 
-        // Events by zone
+        // Events by zone - only from Tavole and Zone endpoints, exclude Nazionale (RT Italia)
+        // Filter by current social year
         $eventsByZone = Activity::select('api_endpoints.area as zone', DB::raw('count(*) as event_count'))
             ->join('api_endpoints', 'activities.api_endpoint_id', '=', 'api_endpoints.id')
             ->whereNull('activities.deleted_at')
+            ->whereIn('api_endpoints.type', ['Tavola', 'Zona']) // Only Tavole and Zone, exclude Nazionale
+            ->where('activities.start_date', '>=', $currentSocialYearStart)
+            ->where('activities.start_date', '<=', $currentSocialYearEnd)
             ->groupBy('api_endpoints.area')
             ->orderBy('event_count', 'desc')
             ->get();
 
-        // Monthly distribution (last 12 months)
+        // Monthly distribution - current social year only
         $monthlyDistribution = Activity::select(
                 DB::raw('DATE_FORMAT(start_date, "%Y-%m") as month'),
                 DB::raw('count(*) as event_count')
             )
             ->whereNull('deleted_at')
-            ->where('start_date', '>=', $now->copy()->subMonths(11)->startOfMonth())
+            ->where('start_date', '>=', $currentSocialYearStart)
+            ->where('start_date', '<=', $currentSocialYearEnd)
             ->groupBy('month')
             ->orderBy('month')
             ->get();
 
-        // Event types distribution
+        // Event types distribution - current social year only
         $eventTypes = Activity::select('rt_type', DB::raw('count(*) as count'))
             ->whereNull('deleted_at')
+            ->where('start_date', '>=', $currentSocialYearStart)
+            ->where('start_date', '<=', $currentSocialYearEnd)
             ->groupBy('rt_type')
             ->orderBy('count', 'desc')
             ->get();
@@ -91,16 +129,20 @@ class ActivityController extends Controller
             ->orderBy('count', 'desc')
             ->get();
 
-        // Multi-day vs single-day events
+        // Multi-day vs single-day events - current social year only
         $multiDayEvents = Activity::whereNull('deleted_at')
             ->whereNotNull('start_date')
             ->whereNotNull('end_date')
+            ->where('start_date', '>=', $currentSocialYearStart)
+            ->where('start_date', '<=', $currentSocialYearEnd)
             ->whereRaw('DATE(start_date) != DATE(end_date)')
             ->count();
         
         $singleDayEvents = Activity::whereNull('deleted_at')
             ->whereNotNull('start_date')
             ->whereNotNull('end_date')
+            ->where('start_date', '>=', $currentSocialYearStart)
+            ->where('start_date', '<=', $currentSocialYearEnd)
             ->whereRaw('DATE(start_date) = DATE(end_date)')
             ->count();
         
@@ -108,7 +150,7 @@ class ActivityController extends Controller
         $multiDayPercentage = $totalEventsWithDates > 0 ? round(($multiDayEvents / $totalEventsWithDates) * 100, 1) : 0;
         $singleDayPercentage = $totalEventsWithDates > 0 ? round(($singleDayEvents / $totalEventsWithDates) * 100, 1) : 0;
 
-        // Most common day of week for single-day events
+        // Most common day of week for single-day events - current social year only
         $dayOfWeekDistribution = Activity::select(
                 DB::raw('DAYOFWEEK(start_date) as day_of_week'),
                 DB::raw('DAYNAME(start_date) as day_name'),
@@ -117,18 +159,22 @@ class ActivityController extends Controller
             ->whereNull('deleted_at')
             ->whereNotNull('start_date')
             ->whereNotNull('end_date')
+            ->where('start_date', '>=', $currentSocialYearStart)
+            ->where('start_date', '<=', $currentSocialYearEnd)
             ->whereRaw('DATE(start_date) = DATE(end_date)')
             ->groupBy('day_of_week', 'day_name')
             ->orderBy('event_count', 'desc')
             ->get();
 
-        // Days from creation to event start (for bell curve)
+        // Days from creation to event start (for bell curve) - current social year only
         // Get events with their details for tooltip
         $daysFromCreation = Activity::with(['apiEndpoint:id,description'])
             ->select('activities.*', DB::raw('DATEDIFF(start_date, created_at) as days_diff'))
             ->whereNull('activities.deleted_at')
             ->whereNotNull('start_date')
             ->whereNotNull('created_at')
+            ->where('start_date', '>=', $currentSocialYearStart)
+            ->where('start_date', '<=', $currentSocialYearEnd)
             ->whereRaw('start_date >= created_at')
             ->orderBy('days_diff')
             ->get()
@@ -176,6 +222,8 @@ class ActivityController extends Controller
         ]);
 
         // Best organized tables - average days from publication to event start
+        // Only Tavole, exclude Zone and Nazionale
+        // Filter by current social year
         $bestOrganizedTables = Activity::select(
                 'api_endpoints.description as table_name',
                 DB::raw('AVG(DATEDIFF(activities.start_date, activities.created_at)) as avg_days'),
@@ -185,10 +233,13 @@ class ActivityController extends Controller
             ->whereNull('activities.deleted_at')
             ->whereNotNull('activities.start_date')
             ->whereNotNull('activities.created_at')
+            ->where('activities.start_date', '>=', $currentSocialYearStart)
+            ->where('activities.start_date', '<=', $currentSocialYearEnd)
             ->whereRaw('activities.start_date >= activities.created_at')
-                ->groupBy('api_endpoints.id', 'api_endpoints.description')
-                ->havingRaw('COUNT(*) >= 5') // At least 5 events for meaningful average
-                ->orderBy('avg_days', 'desc')
+            ->where('api_endpoints.type', 'Tavola') // Only Tavole, exclude Zone and Nazionale
+            ->groupBy('api_endpoints.id', 'api_endpoints.description')
+            ->havingRaw('COUNT(*) >= 5') // At least 5 events for meaningful average
+            ->orderBy('avg_days', 'desc')
             ->limit(20)
             ->get()
             ->map(function ($item) {
